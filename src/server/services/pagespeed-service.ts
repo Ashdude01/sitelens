@@ -7,9 +7,30 @@ import { findReport } from "../repositories/reports";
 import { createMemoryLimiter } from "./rate-limit";
 import { RateLimitError } from "./report-service";
 
-const g = globalThis as unknown as { __psiInflight?: Map<string, Promise<PsiResult>>; __psiLimiter?: ReturnType<typeof createMemoryLimiter> };
+const g = globalThis as unknown as {
+  __psiInflight?: Map<string, Promise<PsiResult>>;
+  __psiLimiter?: ReturnType<typeof createMemoryLimiter>;
+  __psiLimiterCap?: number;
+};
 const inflight = (g.__psiInflight ??= new Map());
-const limiter = (g.__psiLimiter ??= createMemoryLimiter(config.pagespeedRunsPerHour, 3_600_000));
+
+function pagespeedLimits() {
+  const ttl = Number(process.env.PAGESPEED_TTL_HOURS);
+  const runs = Number(process.env.PAGESPEED_RUNS_PER_HOUR);
+  return {
+    ttlHours: Number.isFinite(ttl) && ttl > 0 ? ttl : config.pagespeedTtlHours,
+    runsPerHour: Number.isFinite(runs) && runs > 0 ? runs : config.pagespeedRunsPerHour,
+  };
+}
+
+function limiter() {
+  const { runsPerHour } = pagespeedLimits();
+  if (!g.__psiLimiter || g.__psiLimiterCap !== runsPerHour) {
+    g.__psiLimiterCap = runsPerHour;
+    g.__psiLimiter = createMemoryLimiter(runsPerHour, 3_600_000);
+  }
+  return g.__psiLimiter;
+}
 
 /** Cached PageSpeed result, running Lighthouse via Google only when missing or stale. */
 export async function getPagespeed(
@@ -19,13 +40,13 @@ export async function getPagespeed(
 ): Promise<{ result: PsiResult; cached: boolean }> {
   const target = normalizeTarget(input);
   const cached = await findPagespeed(target.key, strategy);
-  const fresh = cached && Date.now() - cached.fetchedAt < config.pagespeedTtlHours * 3_600_000;
+  const fresh = cached && Date.now() - cached.fetchedAt < pagespeedLimits().ttlHours * 3_600_000;
   if (cached && fresh && !force) return { result: cached.data as PsiResult, cached: true };
 
   const key = `${target.key}|${strategy}`;
   const running = inflight.get(key);
   if (running) return { result: await running, cached: false };
-  if (clientKey && !limiter.take(clientKey)) {
+  if (clientKey && !limiter().take(clientKey)) {
     if (cached) return { result: cached.data as PsiResult, cached: true };
     throw new RateLimitError("PageSpeed limit reached for now. Please try again later.");
   }

@@ -19,8 +19,8 @@ import { OverviewSection } from "./overview-section";
 import { TrafficSection } from "./traffic-section";
 import { EarningsSection } from "./earnings-section";
 import { HealthSection } from "./health-section";
-import { PageSpeedPanel } from "@/components/pagespeed/pagespeed-panel";
 import { MediaSlot } from "@/components/media-slot";
+import { ReportRail } from "./report-rail";
 import { loadFingerprints } from "@/server/scanner/fingerprints";
 import { buildCardData } from "@/server/export/card-data";
 import { config } from "@/server/config";
@@ -102,7 +102,7 @@ export function ReportView({ report, history }: { report: CachedReport; history:
           {/* On smaller screens the PageSpeed panel sits right after the overview. */}
           <MediaSlot query="(max-width: 1279px)">
             <div className="mb-10">
-              <PageSpeedPanel domain={r.domain} />
+              <ReportRail domain={r.domain} />
             </div>
           </MediaSlot>
           <TrafficSection report={r} est={est} />
@@ -124,10 +124,10 @@ export function ReportView({ report, history }: { report: CachedReport; history:
 
           <HealthSection scores={scores} />
         </div>
-        <aside className="hidden xl:block" aria-label="Page speed">
+        <aside className="hidden xl:block" aria-label="Website preview and checks">
           <div className="sticky top-32 max-h-[calc(100vh-9rem)] overflow-y-auto pb-6 [scrollbar-width:thin]">
             <MediaSlot query="(min-width: 1280px)">
-              <PageSpeedPanel domain={r.domain} />
+              <ReportRail domain={r.domain} />
             </MediaSlot>
           </div>
         </aside>

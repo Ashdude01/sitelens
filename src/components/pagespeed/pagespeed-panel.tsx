@@ -151,16 +151,6 @@ function PanelBody({ data }: { data: PsiResult }) {
           </ul>
         </div>
       )}
-
-      {data.screenshot && (
-        // eslint-disable-next-line @next/next/no-img-element -- base64 screenshot from Lighthouse
-        <img
-          src={data.screenshot}
-          alt={`How the page looked on ${data.strategy}`}
-          className="mx-auto max-h-56 rounded-md border"
-          onError={(e) => (e.currentTarget.style.display = "none")}
-        />
-      )}
     </div>
   );
 }

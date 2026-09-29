@@ -7,7 +7,10 @@ import * as schema from "./schema";
 
 export type DB = PostgresJsDatabase<typeof schema>;
 
-const g = globalThis as unknown as { __sitelensDb?: Promise<DB> };
+const g = globalThis as unknown as { __sitelensDb?: Promise<DB>; __sitelensRev?: number };
+
+/** Bump when a new SQL migration must run on an already-open dev server. */
+const MIGRATION_REV = 2;
 
 function migrationsFolder() {
   return process.env.MIGRATIONS_DIR ?? path.join(process.cwd(), "drizzle");
@@ -27,13 +30,22 @@ async function open(): Promise<DB> {
   // prepare:false is required for Neon's pooled (`-pooler`) connections.
   const client = postgres(url, { max: 1, prepare: false, idle_timeout: 20, connect_timeout: 15 });
   const db = drizzle(client, { schema });
-  await migrate(db, { migrationsFolder: migrationsFolder() });
   return db;
 }
 
 /** Returns the Drizzle DB after migrations have been applied. */
 export function getDb(): Promise<DB> {
-  g.__sitelensDb ??= open();
+  if (!g.__sitelensDb || g.__sitelensRev !== MIGRATION_REV) {
+    const prev = g.__sitelensDb;
+    g.__sitelensRev = MIGRATION_REV;
+    g.__sitelensDb = (prev ?? open()).then(async (db) => {
+      const url = process.env.DATABASE_URL?.trim() ?? config.databaseUrl;
+      if (url.startsWith("postgres://") || url.startsWith("postgresql://")) {
+        await migrate(db, { migrationsFolder: migrationsFolder() });
+      }
+      return db;
+    });
+  }
   return g.__sitelensDb;
 }
 

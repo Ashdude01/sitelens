@@ -1,5 +1,5 @@
 // Google PageSpeed Insights v5 client + normalizer.
-// Free API. Works without a key at a low quota; set PAGESPEED_API_KEY for production.
+// Free API. With a key the Cloud quota is 25,000 requests/day and 240/minute.
 import { fetch as ufetch } from "undici";
 import { config } from "../config";
 import { ratingOf, type PsiFieldMetric, type PsiResult, type PsiStrategy, type Rating } from "@/lib/pagespeed-types";

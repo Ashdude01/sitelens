@@ -1,6 +1,7 @@
 // Official technology logos. SVGs are rasterized to PNG because Chrome will not
 // paint an SVG in an <img> when the response carries a Content-Security-Policy sandbox.
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fetch as ufetch } from "undici";
 import { config } from "@/server/config";
@@ -16,7 +17,7 @@ const TYPES: Record<string, string> = {
   ".ico": "image/x-icon",
 };
 
-const cacheDir = () => path.join(config.dataDir, "icon-cache");
+const cacheDirs = () => [path.join(config.dataDir, "icon-cache"), path.join(os.tmpdir(), "sitelens-icon-cache")];
 
 function imageResponse(body: Buffer, type: string, cache = "public, max-age=2592000, immutable") {
   return new Response(new Uint8Array(body), {
@@ -25,10 +26,25 @@ function imageResponse(body: Buffer, type: string, cache = "public, max-age=2592
 }
 
 async function readCached(file: string): Promise<Buffer | null> {
-  try {
-    return await fs.readFile(path.join(cacheDir(), file));
-  } catch {
-    return null;
+  for (const dir of cacheDirs()) {
+    try {
+      return await fs.readFile(path.join(dir, file));
+    } catch {
+      /* try the next cache dir */
+    }
+  }
+  return null;
+}
+
+async function writeCache(file: string, buf: Buffer) {
+  for (const dir of cacheDirs()) {
+    try {
+      await fs.mkdir(dir, { recursive: true });
+      await fs.writeFile(path.join(dir, file), buf);
+      return;
+    } catch {
+      /* Vercel can reject writes outside /tmp */
+    }
   }
 }
 
@@ -39,8 +55,7 @@ async function loadSource(file: string): Promise<Buffer | null> {
   if (!res.ok) return null;
   const buf = Buffer.from(await res.arrayBuffer());
   if (buf.length > 512 * 1024) return null;
-  await fs.mkdir(cacheDir(), { recursive: true });
-  await fs.writeFile(path.join(cacheDir(), file), buf);
+  await writeCache(file, buf);
   return buf;
 }
 
@@ -73,10 +88,10 @@ export async function GET(_req: Request, ctx: RouteContext<"/tech-icons/[file]">
   if (cachedPng) return imageResponse(cachedPng, "image/png");
   try {
     const png = await svgToPng(source);
-    await fs.writeFile(path.join(cacheDir(), pngName), png);
+    await writeCache(pngName, png);
     return imageResponse(png, "image/png");
   } catch (e) {
     console.error("tech icon png failed", file, e);
-    return imageResponse(source, "image/svg+xml", "public, max-age=3600");
+    return new Response("Unavailable", { status: 502, headers: { "cache-control": "no-store" } });
   }
 }

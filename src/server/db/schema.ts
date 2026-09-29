@@ -78,6 +78,21 @@ export const meta = pgTable("meta", {
   value: text("value"),
 });
 
+/** Cached Globalping worldwide HTTP timings. */
+export const latency = pgTable("latency", {
+  domain: text("domain").primaryKey(),
+  json: text("json").notNull(),
+  fetchedAt: ms("fetched_at").notNull(),
+});
+
+/** Cached homepage screenshots for the report sidebar. */
+export const previews = pgTable("previews", {
+  domain: text("domain").primaryKey(),
+  image: text("image").notNull(),
+  contentType: text("content_type").notNull(),
+  fetchedAt: ms("fetched_at").notNull(),
+});
+
 /** Cached Google PageSpeed Insights results (slow to fetch, so cached for days). */
 export const pagespeed = pgTable(
   "pagespeed",

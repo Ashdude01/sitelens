@@ -55,8 +55,14 @@ const EnvSchema = z.object({
   TECH_ICON_UPSTREAM: z.string().default("https://raw.githubusercontent.com/enthec/webappanalyzer/main/src/images/icons/"),
   PAGESPEED_API_KEY: z.string().optional(),
   PAGESPEED_API_BASE: z.string().default("https://www.googleapis.com/pagespeedonline/v5/runPagespeed"),
-  PAGESPEED_TTL_HOURS: int(24 * 7),
-  PAGESPEED_RUNS_PER_HOUR: int(20),
+  PAGESPEED_TTL_HOURS: int(24),
+  PAGESPEED_RUNS_PER_HOUR: int(240),
+
+  GLOBALPING_TOKEN: z.string().optional(),
+  GLOBALPING_TTL_HOURS: int(12),
+  /** Fresh worldwide checks per visitor per hour. Each check is one Globalping test per country. */
+  GLOBALPING_RUNS_PER_HOUR: int(12),
+  PREVIEW_TTL_HOURS: int(24 * 7),
 });
 
 function load() {
@@ -105,6 +111,11 @@ function load() {
     pagespeedApiBase: e.PAGESPEED_API_BASE,
     pagespeedTtlHours: e.PAGESPEED_TTL_HOURS,
     pagespeedRunsPerHour: e.PAGESPEED_RUNS_PER_HOUR,
+
+    globalpingToken: e.GLOBALPING_TOKEN?.trim() ?? "",
+    globalpingTtlHours: e.GLOBALPING_TTL_HOURS,
+    globalpingRunsPerHour: e.GLOBALPING_RUNS_PER_HOUR,
+    previewTtlHours: e.PREVIEW_TTL_HOURS,
   };
 }
 
