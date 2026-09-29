@@ -1,36 +1,39 @@
-import { sqliteTable, text, integer, primaryKey, index } from "drizzle-orm/sqlite-core";
+import { bigint, boolean, index, integer, pgTable, primaryKey, text } from "drizzle-orm/pg-core";
+
+/** Millisecond timestamps and large counters. Postgres `integer` is only 32-bit. */
+const ms = (name: string) => bigint(name, { mode: "number" });
 
 /** Latest scan report per domain (JSON blob). */
-export const reports = sqliteTable(
+export const reports = pgTable(
   "reports",
   {
     domain: text("domain").primaryKey(),
     json: text("json").notNull(),
-    scannedAt: integer("scanned_at").notNull(),
+    scannedAt: ms("scanned_at").notNull(),
     // Denormalised flags so sitemap/listing queries don't parse JSON.
-    fetchOk: integer("fetch_ok", { mode: "boolean" }).notNull().default(false),
-    hasTraffic: integer("has_traffic", { mode: "boolean" }).notNull().default(false),
+    fetchOk: boolean("fetch_ok").notNull().default(false),
+    hasTraffic: boolean("has_traffic").notNull().default(false),
     techCount: integer("tech_count").notNull().default(0),
     /** Best monthly-visits figure (verified or estimated mid) for "popular sites" lists. */
-    trafficMid: integer("traffic_mid"),
+    trafficMid: ms("traffic_mid"),
   },
   (t) => [index("reports_scanned_at_idx").on(t.scannedAt), index("reports_traffic_mid_idx").on(t.trafficMid)],
 );
 
 /** Technology first/last seen per domain. Powers "added / removed" changes and alerts. */
-export const techHistory = sqliteTable(
+export const techHistory = pgTable(
   "tech_history",
   {
     domain: text("domain").notNull(),
     tech: text("tech").notNull(),
-    firstSeen: integer("first_seen").notNull(),
-    lastSeen: integer("last_seen").notNull(),
+    firstSeen: ms("first_seen").notNull(),
+    lastSeen: ms("last_seen").notNull(),
   },
   (t) => [primaryKey({ columns: [t.domain, t.tech] })],
 );
 
 /** Popularity lists (umbrella, majestic, crux, custom). Lower rank = more popular. */
-export const ranks = sqliteTable(
+export const ranks = pgTable(
   "ranks",
   {
     source: text("source").notNull(),
@@ -42,7 +45,7 @@ export const ranks = sqliteTable(
 );
 
 /** Chrome UX Report per-country popularity buckets. */
-export const cruxCountry = sqliteTable(
+export const cruxCountry = pgTable(
   "crux_country",
   {
     domain: text("domain").notNull(),
@@ -53,36 +56,36 @@ export const cruxCountry = sqliteTable(
 );
 
 /** Known real traffic. source='verified' is shown as exact; all rows feed calibration. */
-export const groundTruth = sqliteTable("ground_truth", {
+export const groundTruth = pgTable("ground_truth", {
   domain: text("domain").primaryKey(),
-  monthlyVisits: integer("monthly_visits").notNull(),
+  monthlyVisits: ms("monthly_visits").notNull(),
   source: text("source").notNull(),
   period: text("period"),
-  updatedAt: integer("updated_at").notNull(),
+  updatedAt: ms("updated_at").notNull(),
 });
 
-/** IP range -> ASN / hosting network (iptoasn.com, public domain). */
-export const ip2asn = sqliteTable("ip2asn", {
-  start: integer("start").primaryKey(),
-  end: integer("end").notNull(),
+/** IP range -> ASN / hosting network (iptoasn.com, public domain). Stored as unsigned IPv4 ints. */
+export const ip2asn = pgTable("ip2asn", {
+  start: ms("start").primaryKey(),
+  end: ms("end").notNull(),
   asn: integer("asn").notNull(),
   country: text("country"),
   org: text("org"),
 });
 
-export const meta = sqliteTable("meta", {
+export const meta = pgTable("meta", {
   key: text("key").primaryKey(),
   value: text("value"),
 });
 
 /** Cached Google PageSpeed Insights results (slow to fetch, so cached for days). */
-export const pagespeed = sqliteTable(
+export const pagespeed = pgTable(
   "pagespeed",
   {
     domain: text("domain").notNull(),
-    strategy: text("strategy").notNull(), // "mobile" | "desktop"
+    strategy: text("strategy").notNull(),
     json: text("json").notNull(),
-    fetchedAt: integer("fetched_at").notNull(),
+    fetchedAt: ms("fetched_at").notNull(),
   },
   (t) => [primaryKey({ columns: [t.domain, t.strategy] })],
 );

@@ -3,7 +3,7 @@ import { getDb, schema } from "../db/client";
 
 export async function getMeta(key: string): Promise<string | null> {
   const db = await getDb();
-  const row = await db.select().from(schema.meta).where(eq(schema.meta.key, key)).get();
+  const [row] = await db.select().from(schema.meta).where(eq(schema.meta.key, key)).limit(1);
   return row?.value ?? null;
 }
 

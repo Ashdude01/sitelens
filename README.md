@@ -6,7 +6,7 @@ Enter any domain and see:
 - **Its hosting, DNS, email and SSL setup.**
 - **An honest traffic range** with a confidence level.
 
-**Stack:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui · Drizzle ORM + SQLite (libSQL) · Vitest.
+**Stack:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui · Drizzle ORM + Postgres (Neon) · Vitest.
 
 See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for the design, data model, security and scaling plan.
 
@@ -21,7 +21,7 @@ npm install
 npm run dev            # http://localhost:3000
 ```
 
-Try it on a real site, e.g. `http://localhost:3000/site/wordpress.org`. The database (`data/sitelens.db`) is created automatically on first run.
+Set `DATABASE_URL` in `.env` to your Neon Postgres connection string, then try a real site, e.g. `http://localhost:3000/site/wordpress.org`. Tables are created on first run.
 
 Tech detection works immediately. **Traffic numbers need popularity data:**
 
@@ -73,7 +73,7 @@ Until you calibrate, every estimate says **"Uncalibrated model"**.
 | Command | What it does |
 |---|---|
 | `npm run dev` | Development server with hot reload |
-| `npm run build` then `npm start` | Production build + standalone server (keeps the DB in `./data`) |
+| `npm run build` then `npm start` | Production build + standalone server |
 | `npm test` | Unit + end-to-end tests against local fake websites (WordPress, Shopify, SPA, robots-blocked) |
 | `npm run typecheck` / `npm run lint` | TypeScript / ESLint |
 | `npm run scan -- example.com [--json] [--force]` | Scan from the terminal |
@@ -86,7 +86,7 @@ Until you calibrate, every estimate says **"Uncalibrated model"**.
 
 ## Configuration
 
-Copy `.env.example` to `.env`. Everything is optional:
+Copy `.env.example` to `.env`. `DATABASE_URL` (Neon Postgres) is required. Everything else is optional:
 
 - `CRUX_API_KEY`: adds real-user Core Web Vitals and the mobile/desktop split.
 - `DATAFORSEO_*`: adds Google organic traffic estimates.
@@ -99,7 +99,7 @@ Copy `.env.example` to `.env`. Everything is optional:
 **Setup:** one small Linux VPS (Hetzner / Oracle free tier) with Docker, and Cloudflare (free) in front.
 
 ```bash
-cp .env.example .env        # set PUBLIC_URL, TRUST_PROXY=1
+cp .env.example .env        # set DATABASE_URL, PUBLIC_URL, TRUST_PROXY=1
 docker compose up -d --build
 docker compose run --rm tools npm run import:ranks -- umbrella
 docker compose run --rm tools npm run import:ranks -- majestic
@@ -107,7 +107,7 @@ docker compose run --rm tools npm run import:ranks -- majestic
 
 Schedule the weekly imports and `update:fingerprints` with cron.
 
-The app needs raw DNS/TLS sockets and scans can take up to 15 seconds. **Use a VPS, not Vercel serverless.**
+On Vercel, set `DATABASE_URL` to the Neon **pooled** connection string (the host contains `-pooler`).
 
 ## Project layout
 
@@ -116,7 +116,7 @@ src/app/            routes: pages, API (/api/v1/lookup), server actions, sitemap
 src/components/     ui/ (shadcn), report/ (report sections)
 src/server/         config · db (Drizzle) · repositories · scanner · traffic · services
 scripts/            CLI jobs (imports, calibrate, scan)
-data/               fingerprints (GPL-3.0), calibration.json, ground_truth.csv, sitelens.db
+data/               fingerprints (GPL-3.0), calibration.json, ground_truth.csv
 tests/              Vitest unit + e2e with fixture websites
 ```
 

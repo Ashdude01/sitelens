@@ -3,11 +3,11 @@ import { getDb, schema } from "../db/client";
 
 export async function findPagespeed(domain: string, strategy: string) {
   const db = await getDb();
-  const row = await db
+  const [row] = await db
     .select()
     .from(schema.pagespeed)
     .where(and(eq(schema.pagespeed.domain, domain), eq(schema.pagespeed.strategy, strategy)))
-    .get();
+    .limit(1);
   return row ? { data: JSON.parse(row.json) as unknown, fetchedAt: row.fetchedAt } : null;
 }
 

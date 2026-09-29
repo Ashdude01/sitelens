@@ -4,7 +4,7 @@ import type { CachedReport, Report, TechChange } from "@/lib/types";
 
 export async function findReport(domain: string): Promise<CachedReport | null> {
   const db = await getDb();
-  const row = await db.select().from(schema.reports).where(eq(schema.reports.domain, domain)).get();
+  const [row] = await db.select().from(schema.reports).where(eq(schema.reports.domain, domain)).limit(1);
   if (!row) return null;
   const report = JSON.parse(row.json) as Report;
   return {
@@ -27,15 +27,14 @@ export async function saveReport(report: Report) {
     trafficMid: report.traffic.verified?.monthlyVisits ?? (report.traffic.estimate ? Math.round(report.traffic.estimate.monthlyVisits.mid) : null),
   };
   const techs = report.technologies.filter((t) => t.confidence >= 50);
-  await db.batch([
-    db.insert(schema.reports).values(values).onConflictDoUpdate({ target: schema.reports.domain, set: values }),
-    ...techs.map((t) =>
-      db
-        .insert(schema.techHistory)
-        .values({ domain: report.domain, tech: t.name, firstSeen: now, lastSeen: now })
-        .onConflictDoUpdate({ target: [schema.techHistory.domain, schema.techHistory.tech], set: { lastSeen: now } }),
-    ),
-  ] as unknown as Parameters<typeof db.batch>[0]);
+  await db.transaction(async (tx) => {
+    await tx.insert(schema.reports).values(values).onConflictDoUpdate({ target: schema.reports.domain, set: values });
+    if (!techs.length) return;
+    await tx
+      .insert(schema.techHistory)
+      .values(techs.map((t) => ({ domain: report.domain, tech: t.name, firstSeen: now, lastSeen: now })))
+      .onConflictDoUpdate({ target: [schema.techHistory.domain, schema.techHistory.tech], set: { lastSeen: now } });
+  });
 }
 
 export async function getTechHistory(domain: string): Promise<TechChange[]> {

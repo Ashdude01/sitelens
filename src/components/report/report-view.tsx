@@ -108,14 +108,14 @@ export function ReportView({ report, history }: { report: CachedReport; history:
           <TrafficSection report={r} est={est} />
           <EarningsSection est={est} />
 
-          <Section id="technology" title="Technology" description="Detected from headers, HTML, scripts, cookies, DNS and SSL. Click any item to see the evidence.">
+          <Section id="technology" title="Technology">
             <div className="space-y-4">
               <TechStackCard technologies={r.technologies} />
               <TechChangesCard history={history} />
             </div>
           </Section>
 
-          <Section id="infrastructure" title="Infrastructure" description="Hosting, DNS, email and the homepage response.">
+          <Section id="infrastructure" title="Infrastructure">
             <div className="grid gap-4 lg:grid-cols-2">
               <InfraCard report={r} />
               <WebsiteCard report={r} />
@@ -134,13 +134,10 @@ export function ReportView({ report, history }: { report: CachedReport; history:
       </div>
 
       <p className="text-muted-foreground border-t pt-4 pb-12 text-xs">
-        Scan mode: {r.mode === "browser" ? "full browser render" : "raw HTML + DNS + SSL"} · took {fmt(r.scanMs)} ms ·{" "}
-        {r.robots.found ? `robots.txt ${r.robots.allowed ? "allows" : "disallows"} our crawler` : "no robots.txt"}. Traffic, engagement, earnings and worth
-        are estimates. See the{" "}
+        {r.mode === "browser" ? "Browser render" : "HTML + DNS + SSL"} · {fmt(r.scanMs)} ms ·{" "}
         <Link href="/methodology" className="text-primary hover:underline">
-          methodology
+          Methodology
         </Link>
-        .
       </p>
     </>
   );

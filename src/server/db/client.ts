@@ -1,81 +1,40 @@
-import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { createClient, type Client } from "@libsql/client";
-import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
-import { migrate } from "drizzle-orm/libsql/migrator";
+import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import postgres from "postgres";
 import { config } from "../config";
 import * as schema from "./schema";
 
-type DB = LibSQLDatabase<typeof schema>;
+export type DB = PostgresJsDatabase<typeof schema>;
 
-// Reuse one connection across hot reloads in dev.
-const g = globalThis as unknown as { __sitelensDb?: { db: DB; client: Client; ready: Promise<void> } };
+const g = globalThis as unknown as { __sitelensDb?: Promise<DB> };
 
-function localSqlitePath(url: string): string {
-  return url.startsWith("file://") ? fileURLToPath(url) : url.slice("file:".length);
+function migrationsFolder() {
+  return process.env.MIGRATIONS_DIR ?? path.join(process.cwd(), "drizzle");
 }
 
-/**
- * Vercel (and other serverless hosts) mount the app directory read-only, so the default
- * `data/sitelens.db` cannot be created. Fall back to the temp dir, which is writable but
- * ephemeral. A `libsql://` DATABASE_URL is unchanged and is what persists across requests.
- */
-function directoryIsWritable(dir: string): boolean {
-  const probe = path.join(dir, `.write-probe-${process.pid}`);
-  try {
-    fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(probe, "");
-  } catch {
-    return false;
+async function open(): Promise<DB> {
+  const url = config.databaseUrl;
+  if (url === "pglite" || url.startsWith("pglite:")) {
+    const { createTestDb } = await import("./test-db");
+    return createTestDb(migrationsFolder(), url.slice("pglite:".length));
   }
-  try {
-    fs.unlinkSync(probe);
-  } catch {
-    // The directory accepted a write. A leftover probe file is harmless.
+  if (!url.startsWith("postgres://") && !url.startsWith("postgresql://")) {
+    throw new Error(
+      "DATABASE_URL must be a Postgres connection string (postgresql://...). Add your Neon connection string to .env and to the Vercel project settings.",
+    );
   }
-  return true;
-}
-
-export function resolveDatabaseUrl(url: string): string {
-  if (!url.startsWith("file:")) return url;
-  const file = localSqlitePath(url);
-  const dir = path.dirname(file);
-  if (directoryIsWritable(dir)) return url;
-  const fallback = path.join(os.tmpdir(), "sitelens.db");
-  console.warn(
-    `SQLite database at ${file} is not writable. Using ephemeral ${fallback}. Set DATABASE_URL to a libsql:// database so reports persist.`,
-  );
-  return pathToFileURL(fallback).href;
-}
-
-function init() {
-  const url = resolveDatabaseUrl(config.databaseUrl);
-  if (url.startsWith("file:")) fs.mkdirSync(path.dirname(localSqlitePath(url)), { recursive: true });
-  const client = createClient({ url, authToken: config.databaseAuthToken });
+  // prepare:false is required for Neon's pooled (`-pooler`) connections.
+  const client = postgres(url, { max: 1, prepare: false, idle_timeout: 20, connect_timeout: 15 });
   const db = drizzle(client, { schema });
-  const ready = (async () => {
-    if (url.startsWith("file:")) {
-      await client.execute("PRAGMA journal_mode = WAL");
-      await client.execute("PRAGMA busy_timeout = 5000");
-    }
-    await migrate(db, { migrationsFolder: process.env.MIGRATIONS_DIR ?? path.join(process.cwd(), "drizzle") });
-  })();
-  return { db, client, ready };
+  await migrate(db, { migrationsFolder: migrationsFolder() });
+  return db;
 }
 
 /** Returns the Drizzle DB after migrations have been applied. */
-export async function getDb(): Promise<DB> {
-  g.__sitelensDb ??= init();
-  await g.__sitelensDb.ready;
-  return g.__sitelensDb.db;
-}
-
-export async function getClient(): Promise<Client> {
-  g.__sitelensDb ??= init();
-  await g.__sitelensDb.ready;
-  return g.__sitelensDb.client;
+export function getDb(): Promise<DB> {
+  g.__sitelensDb ??= open();
+  return g.__sitelensDb;
 }
 
 export { schema };

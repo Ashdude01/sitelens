@@ -21,15 +21,14 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0 \
     DATA_DIR=/app/data \
-    MIGRATIONS_DIR=/app/drizzle \
-    DATABASE_URL=file:///data/sitelens.db
+    MIGRATIONS_DIR=/app/drizzle
 # Uncomment to enable USE_BROWSER=1 (adds ~300 MB):
 # RUN apt-get update && apt-get install -y --no-install-recommends chromium && rm -rf /var/lib/apt/lists/*
 # ENV CHROMIUM_PATH=/usr/bin/chromium
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/data ./data
 COPY --from=build /app/drizzle ./drizzle
-RUN mkdir -p /data && chown -R node:node /data /app/data
+RUN chown -R node:node /app/data
 USER node
 EXPOSE 3000
 CMD ["node", "server.js"]

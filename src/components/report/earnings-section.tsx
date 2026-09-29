@@ -12,17 +12,13 @@ export function EarningsSection({ est: e }: { est: Estimates }) {
   if (!earn || !e.pageviews || !e.worth) {
     return (
       <Section id="earnings" title="Earnings & worth">
-        <p className="text-muted-foreground rounded-xl border p-4 text-sm">We need a traffic estimate before we can model earnings.</p>
+        <p className="text-muted-foreground rounded-xl border p-4 text-sm">Needs a traffic estimate.</p>
       </Section>
     );
   }
   const potential = earn.kind === "potential";
   return (
-    <Section
-      id="earnings"
-      title="Earnings & worth"
-      description={potential ? "What this site could earn from display ads. We found no ad network on the page." : "Estimated display-ad revenue, based on the ad networks we detected."}
-    >
+    <Section id="earnings" title="Earnings & worth">
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>

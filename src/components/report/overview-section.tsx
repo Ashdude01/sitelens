@@ -40,7 +40,7 @@ export function OverviewSection({ report: r, est: e, summary }: { report: Report
           value={e.visits ? (e.verified ? compact(e.visits.monthly.mid) : approx(e.visits.monthly)) : noData}
           range={e.visits && !e.verified ? span(e.visits.monthly) : null}
           muted={!e.visits}
-          note={e.verified ? "Verified by owner" : e.visits ? "Estimated" : "Not in popularity lists"}
+          note={e.verified ? "Verified" : e.visits ? "Estimated" : undefined}
         />
         <StatTile
           icon={Users}
@@ -48,7 +48,6 @@ export function OverviewSection({ report: r, est: e, summary }: { report: Report
           value={e.visits ? approx(e.visits.dailyUnique) : noData}
           range={e.visits ? span(e.visits.dailyUnique) : null}
           muted={!e.visits}
-          note={e.visits ? "Modeled from visits" : undefined}
         />
         <StatTile
           icon={Eye}
@@ -56,7 +55,6 @@ export function OverviewSection({ report: r, est: e, summary }: { report: Report
           value={e.pageviews ? approx(e.pageviews.daily) : noData}
           range={e.pageviews ? span(e.pageviews.daily) : null}
           muted={!e.pageviews}
-          note={e.pageviews ? `× ${e.engagement.pagesPerVisit.mid.toFixed(1)} pages per visit` : undefined}
         />
         <StatTile
           icon={Coins}
@@ -64,7 +62,7 @@ export function OverviewSection({ report: r, est: e, summary }: { report: Report
           value={e.earnings ? approx(e.earnings.monthly, money) : noData}
           range={e.earnings ? span(e.earnings.monthly, money) : null}
           muted={!e.earnings}
-          note={e.earnings ? (e.earnings.kind === "estimated" ? `${e.earnings.adNetworks[0]} detected` : "No ad network detected") : undefined}
+          note={e.earnings?.adNetworks[0]}
         />
         <StatTile
           icon={Gem}
@@ -72,7 +70,6 @@ export function OverviewSection({ report: r, est: e, summary }: { report: Report
           value={e.worth ? approx(e.worth, money) : noData}
           range={e.worth ? span(e.worth, money) : null}
           muted={!e.worth}
-          note={e.worth ? "As an ad-funded site" : undefined}
         />
         {e.bestRank ? (
           <StatTile

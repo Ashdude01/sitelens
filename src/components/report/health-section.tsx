@@ -7,7 +7,7 @@ import { Section } from "./section-nav";
 export function HealthSection({ scores }: { scores: Score[] | null }) {
   if (!scores) return null;
   return (
-    <Section id="health" title="Health checks" description="Scored only from what we observed on the homepage, DNS and SSL. Fix the red items first.">
+    <Section id="health" title="Health">
       <div className="grid gap-4 md:grid-cols-3">
         {scores.map((s) => {
           const failing = s.checks.filter((c) => !c.pass);

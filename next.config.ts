@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   // Self-contained server bundle for Docker / VPS deploys.
   output: "standalone",
   // Native / heavy server packages are loaded from node_modules at runtime instead of being bundled.
-  serverExternalPackages: ["@libsql/client", "libsql", "playwright-core", "undici"],
+  serverExternalPackages: ["postgres", "playwright-core", "undici", "@resvg/resvg-js"],
   // Runtime data files read with fs (fingerprints, calibration, migrations) must ship with the standalone build.
   outputFileTracingIncludes: {
     "/**": ["./data/fingerprints/**", "./data/fonts/**", "./data/calibration.json", "./drizzle/**"],

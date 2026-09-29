@@ -1,6 +1,6 @@
 // Production start (works on Windows, macOS and Linux).
 // The standalone server changes its working directory to .next/standalone, so we pin the data folder
-// (database, fingerprints, calibration) to ./data *before* it starts. Otherwise a rebuild would wipe the DB.
+// (fingerprints, calibration) to ./data *before* it starts. The database is Postgres via DATABASE_URL.
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";

@@ -1,9 +1,9 @@
 import os from "node:os";
-import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-const tmpDb = path.join(os.tmpdir(), `sitelens-test-${process.pid}.db`);
+const testDb = path.join(os.tmpdir(), `sitelens-pg-${process.pid}`);
 
 export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
@@ -14,7 +14,7 @@ export default defineConfig({
     testTimeout: 30_000,
     hookTimeout: 60_000,
     env: {
-      DATABASE_URL: `file:${tmpDb}`,
+      DATABASE_URL: `pglite:${testDb}`,
       ALLOW_PRIVATE_NETWORK: "1",
       RDAP_ENABLED: "0",
       FETCH_TIMEOUT_MS: "5000",

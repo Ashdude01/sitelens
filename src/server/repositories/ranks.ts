@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray, min, sql } from "drizzle-orm";
-import { getClient, getDb, schema } from "../db/client";
+import { getDb, schema } from "../db/client";
 import type { Target } from "../scanner/net";
 import type { RankSignal } from "@/lib/types";
 import { SOURCE_LABELS } from "../traffic/estimator";
@@ -56,68 +56,73 @@ export async function getRanksForDomain(source: string, domain: string) {
 
 type RankRow = { domain: string; rank: number; extra?: string | null };
 
+function keepLowerRank<T extends { rank: number }>(rows: T[], key: (row: T) => string): T[] {
+  const best = new Map<string, T>();
+  for (const row of rows) {
+    const id = key(row);
+    const cur = best.get(id);
+    if (!cur || row.rank < cur.rank) best.set(id, row);
+  }
+  return [...best.values()];
+}
+
 /** Replace a whole source with new rows. Streams in batches inside one write transaction. */
 export async function replaceSource(source: string, rows: AsyncIterable<RankRow>, onProgress?: (n: number) => void) {
-  const client = await getClient();
-  const tx = await client.transaction("write");
+  const db = await getDb();
   let n = 0;
-  try {
-    await tx.execute({ sql: "DELETE FROM ranks WHERE source = ?", args: [source] });
+  await db.transaction(async (tx) => {
+    await tx.delete(schema.ranks).where(eq(schema.ranks.source, source));
     let batch: RankRow[] = [];
     const flush = async () => {
-      if (!batch.length) return;
-      const placeholders = batch.map(() => "(?, ?, ?, ?)").join(",");
-      await tx.execute({
-        sql: `INSERT INTO ranks(source, domain, rank, extra) VALUES ${placeholders}
-              ON CONFLICT(source, domain) DO UPDATE SET rank = MIN(rank, excluded.rank)`,
-        args: batch.flatMap((r) => [source, r.domain, r.rank, r.extra ?? null]),
-      });
-      n += batch.length;
-      onProgress?.(n);
+      const rows = keepLowerRank(batch, (r) => r.domain);
       batch = [];
+      if (!rows.length) return;
+      await tx
+        .insert(schema.ranks)
+        .values(rows.map((r) => ({ source, domain: r.domain, rank: r.rank, extra: r.extra ?? null })))
+        .onConflictDoUpdate({
+          target: [schema.ranks.source, schema.ranks.domain],
+          set: { rank: sql`LEAST(${schema.ranks.rank}, excluded.rank)` },
+        });
+      n += rows.length;
+      onProgress?.(n);
     };
     for await (const r of rows) {
       batch.push(r);
       if (batch.length >= 2000) await flush();
     }
     await flush();
-    await tx.commit();
-  } catch (e) {
-    await tx.rollback();
-    throw e;
-  }
+  });
   await setMeta(`import:${source}`, new Date().toISOString());
   return n;
 }
 
 export async function replaceCruxCountry(rows: AsyncIterable<{ domain: string; country: string; rank: number }>, onProgress?: (n: number) => void) {
-  const client = await getClient();
-  const tx = await client.transaction("write");
+  const db = await getDb();
   let n = 0;
-  try {
-    await tx.execute("DELETE FROM crux_country");
+  await db.transaction(async (tx) => {
+    await tx.delete(schema.cruxCountry);
     let batch: { domain: string; country: string; rank: number }[] = [];
     const flush = async () => {
-      if (!batch.length) return;
-      await tx.execute({
-        sql: `INSERT INTO crux_country(domain, country, rank) VALUES ${batch.map(() => "(?, ?, ?)").join(",")}
-              ON CONFLICT(domain, country) DO UPDATE SET rank = MIN(rank, excluded.rank)`,
-        args: batch.flatMap((r) => [r.domain, r.country, r.rank]),
-      });
-      n += batch.length;
-      onProgress?.(n);
+      const rows = keepLowerRank(batch, (r) => `${r.domain}\n${r.country}`);
       batch = [];
+      if (!rows.length) return;
+      await tx
+        .insert(schema.cruxCountry)
+        .values(rows)
+        .onConflictDoUpdate({
+          target: [schema.cruxCountry.domain, schema.cruxCountry.country],
+          set: { rank: sql`LEAST(${schema.cruxCountry.rank}, excluded.rank)` },
+        });
+      n += rows.length;
+      onProgress?.(n);
     };
     for await (const r of rows) {
       batch.push(r);
-      if (batch.length >= 3000) await flush();
+      if (batch.length >= 2000) await flush();
     }
     await flush();
-    await tx.commit();
-  } catch (e) {
-    await tx.rollback();
-    throw e;
-  }
+  });
   await setMeta("import:crux-country", new Date().toISOString());
   return n;
 }

@@ -3,22 +3,11 @@ services:
     build: { context: ., target: run }
     restart: unless-stopped
     env_file: .env
-    environment:
-      DATABASE_URL: file:///data/sitelens.db
     ports:
       - "3000:3000"
-    volumes:
-      - db:/data
 
   # One-off jobs:  docker compose run --rm tools npm run import:ranks -- umbrella
   tools:
     build: { context: ., target: build }
     profiles: ["tools"]
     env_file: .env
-    environment:
-      DATABASE_URL: file:///data/sitelens.db
-    volumes:
-      - db:/data
-
-volumes:
-  db:

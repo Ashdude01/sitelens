@@ -1,5 +1,4 @@
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import { z } from "zod";
 
 const bool = (def: boolean) =>
@@ -20,10 +19,16 @@ const EnvSchema = z.object({
     .string()
     .default("http://localhost:3000")
     .transform((u) => u.replace(/\/$/, "")),
-  /** Folder with fingerprints/, calibration.json, ground_truth.csv and (by default) the SQLite file. */
+  /** Folder with fingerprints/, calibration.json and ground_truth.csv. */
   DATA_DIR: z.string().optional(),
-  DATABASE_URL: z.string().optional(),
-  DATABASE_AUTH_TOKEN: z.string().optional(),
+  /** Neon/Postgres connection string: postgresql://… */
+  DATABASE_URL: z
+    .string()
+    .optional()
+    .transform((v) => {
+      const url = v?.trim() ?? "";
+      return url.length ? url : undefined;
+    }),
 
   USER_AGENT: z.string().default("Mozilla/5.0 (compatible; SiteLensBot/0.1; +https://example.com/bot)"),
   BOT_TOKEN: z.string().default("SiteLensBot"),
@@ -64,9 +69,8 @@ function load() {
   return {
     siteName: e.SITE_NAME,
     publicUrl: e.PUBLIC_URL,
-    // file:///C:/... on Windows, file:///home/... on Linux
-    databaseUrl: e.DATABASE_URL ?? pathToFileURL(path.join(dataDir, "sitelens.db")).href,
-    databaseAuthToken: e.DATABASE_AUTH_TOKEN,
+    /** Empty until DATABASE_URL is set. getDb() refuses to connect without a Postgres URL. */
+    databaseUrl: e.DATABASE_URL ?? "",
     dataDir,
 
     userAgent: e.USER_AGENT,

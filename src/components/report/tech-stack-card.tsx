@@ -1,6 +1,6 @@
 import { Layers } from "lucide-react";
 import type { Technology } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TechChip } from "./tech-chip";
 
 export function TechStackCard({ technologies, className }: { technologies: Technology[]; className?: string }) {
@@ -13,9 +13,8 @@ export function TechStackCard({ technologies, className }: { technologies: Techn
     <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Layers className="text-muted-foreground size-4" /> {technologies.length} technologies detected
+          <Layers className="text-muted-foreground size-4" /> {technologies.length} detected
         </CardTitle>
-        <CardDescription>Click a technology to learn more, or the (i) to see why we detected it. Faded items are lower-confidence matches.</CardDescription>
       </CardHeader>
       <CardContent>
         {technologies.length === 0 ? (

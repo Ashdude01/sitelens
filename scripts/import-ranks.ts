@@ -13,6 +13,7 @@ import fs from "node:fs";
 import readline from "node:readline";
 import { Readable } from "node:stream";
 import { unzipSync } from "fflate";
+import { getDb } from "@/server/db/client";
 import { replaceCruxCountry, replaceSource } from "@/server/repositories/ranks";
 
 const args = process.argv.slice(2);
@@ -110,6 +111,8 @@ async function main() {
     process.exit(1);
   }
   const t0 = Date.now();
+  // Connect first. A slow first connection must not run while the input stream is already open.
+  await getDb();
   const lines = await openLines();
   if (kind === "crux-country") {
     const n = await replaceCruxCountry(countryRows(lines), progress);

@@ -1,13 +1,27 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Code2, Copy, Download, FileImage, FileText, Image as ImageIcon, Link2, Share2 } from "lucide-react";
+import { Check, Copy, Share2 } from "lucide-react";
 import type { CardData } from "@/server/export/card-data";
 import { badgeSnippet, htmlCardSnippet, imageCardSnippet } from "@/lib/embed-snippets";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+
+type EmbedKind = "badge" | "image" | "html";
+type BadgeMetric = "traffic" | "stack" | "grade";
+
+const EMBEDS: { id: EmbedKind; label: string }[] = [
+  { id: "badge", label: "Badge" },
+  { id: "image", label: "Image" },
+  { id: "html", label: "HTML" },
+];
+
+const METRICS: { id: BadgeMetric; label: string }[] = [
+  { id: "traffic", label: "Traffic" },
+  { id: "stack", label: "Stack" },
+  { id: "grade", label: "Security" },
+];
 
 function useCopy() {
   const [copied, setCopied] = useState<string | null>(null);
@@ -23,42 +37,54 @@ function useCopy() {
       ta.remove();
     }
     setCopied(id);
-    setTimeout(() => setCopied((c) => (c === id ? null : c)), 1800);
+    setTimeout(() => setCopied((c) => (c === id ? null : c)), 1600);
   };
   return { copied, copy };
 }
 
-function Snippet({ id, title, description, code, preview, copied, onCopy }: {
-  id: string;
-  title: string;
-  description: string;
-  code: string;
-  preview: React.ReactNode;
-  copied: boolean;
-  onCopy: () => void;
+function Choice<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { id: T; label: string }[];
+  onChange: (id: T) => void;
 }) {
   return (
-    <div className="space-y-2 rounded-lg border p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium">{title}</p>
-          <p className="text-muted-foreground text-xs">{description}</p>
-        </div>
-        <Button size="sm" variant={copied ? "secondary" : "outline"} onClick={onCopy} aria-label={`Copy ${title} code`}>
-          {copied ? <Check /> : <Copy />} {copied ? "Copied" : "Copy"}
-        </Button>
-      </div>
-      <div className="bg-muted/40 flex min-h-12 items-center justify-center overflow-hidden rounded-md p-3">{preview}</div>
-      <pre className="bg-muted max-h-28 overflow-auto rounded-md p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-all" data-snippet={id}>
-        {code}
-      </pre>
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className="bg-muted grid gap-0.5 rounded-lg p-0.5"
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+    >
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          role="radio"
+          aria-checked={value === option.id}
+          onClick={() => onChange(option.id)}
+          className={cn(
+            "h-7 rounded-md px-1 text-xs font-medium",
+            value === option.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   );
 }
 
 export function ExportDialog({ data, publicUrl }: { data: CardData; publicUrl: string }) {
   const { copied, copy } = useCopy();
-  const [metric, setMetric] = useState<"traffic" | "stack" | "grade">("traffic");
+  const [panel, setPanel] = useState<"download" | "embed">("download");
+  const [embed, setEmbed] = useState<EmbedKind>("badge");
+  const [metric, setMetric] = useState<BadgeMetric>("traffic");
+  const [showCode, setShowCode] = useState(false);
   const [jpgBusy, setJpgBusy] = useState(false);
   const enc = encodeURIComponent(data.domain);
   const cardUrl = `/api/v1/card/${enc}`;
@@ -68,6 +94,7 @@ export function ExportDialog({ data, publicUrl }: { data: CardData; publicUrl: s
     () => ({ badge: badgeSnippet(publicUrl, data, metric), image: imageCardSnippet(publicUrl, data), html: htmlCardSnippet(data) }),
     [publicUrl, data, metric],
   );
+  const code = snippets[embed];
 
   const downloadJpg = async () => {
     setJpgBusy(true);
@@ -96,100 +123,73 @@ export function ExportDialog({ data, publicUrl }: { data: CardData; publicUrl: s
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button size="sm">
-          <Share2 /> Export & embed
+        <Button size="sm" variant="outline">
+          <Share2 /> Export
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Export {data.domain}</DialogTitle>
-          <DialogDescription>Download the report, or put a live badge on your own site. Every export links back to this report.</DialogDescription>
+      <DialogContent className="flex max-h-[min(92dvh,34rem)] w-[min(26rem,calc(100%-1.25rem))] flex-col gap-3 overflow-hidden p-4 sm:max-w-md sm:p-5">
+        <DialogHeader className="gap-1 pr-6 text-left">
+          <DialogTitle className="text-base">Export</DialogTitle>
+          <DialogDescription className="truncate text-xs">{data.domain}</DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="download">
-          <TabsList className="w-full">
-            <TabsTrigger value="download">
-              <Download /> Download
-            </TabsTrigger>
-            <TabsTrigger value="embed">
-              <Code2 /> Embed on your site
-            </TabsTrigger>
-          </TabsList>
 
-          <TabsContent value="download" className="space-y-4 pt-2">
+        <Choice label="Export type" value={panel} options={[{ id: "download", label: "Download" }, { id: "embed", label: "Embed" }]} onChange={setPanel} />
+
+        {panel === "download" ? (
+          <div className="min-h-0 space-y-3 overflow-y-auto">
             {/* eslint-disable-next-line @next/next/no-img-element -- generated PNG preview */}
-            <img src={cardUrl} alt={`${data.domain} report card`} width={1200} height={630} className="w-full rounded-lg border" />
-            <div className="grid gap-2 sm:grid-cols-3">
-              <Button asChild variant="outline">
+            <img src={cardUrl} alt={`${data.domain} report card`} width={1200} height={630} className="aspect-[40/21] w-full rounded-md border object-cover" />
+            <div className="grid grid-cols-2 gap-2">
+              <Button asChild variant="outline" size="sm">
                 <a href={`${cardUrl}?download=1`} download={`${file}-sitelens.png`}>
-                  <FileImage /> PNG
+                  PNG
                 </a>
               </Button>
-              <Button variant="outline" onClick={downloadJpg} disabled={jpgBusy}>
-                <ImageIcon /> {jpgBusy ? "Converting…" : "JPG"}
+              <Button variant="outline" size="sm" onClick={downloadJpg} disabled={jpgBusy}>
+                {jpgBusy ? "Saving…" : "JPG"}
               </Button>
-              <Button asChild variant="outline">
+              <Button asChild variant="outline" size="sm">
                 <a href={`/api/v1/export/${enc}?format=pdf`} download={`${file}-sitelens-report.pdf`}>
-                  <FileText /> PDF report
+                  PDF
                 </a>
               </Button>
-            </div>
-            <div className="flex items-center gap-2">
-              <input readOnly value={data.reportUrl} aria-label="Report link" className="bg-muted min-w-0 flex-1 rounded-md px-3 py-2 font-mono text-xs" />
               <Button variant="outline" size="sm" onClick={() => copy("link", data.reportUrl)}>
-                {copied === "link" ? <Check /> : <Link2 />} {copied === "link" ? "Copied" : "Copy link"}
+                {copied === "link" ? <Check /> : null}
+                {copied === "link" ? "Copied" : "Copy link"}
               </Button>
             </div>
-          </TabsContent>
-
-          <TabsContent value="embed" className="space-y-3 pt-2">
-            <Snippet
-              id="badge"
-              title="Live badge"
-              description="Updates automatically after each scan."
-              code={snippets.badge}
-              copied={copied === "badge"}
-              onCopy={() => copy("badge", snippets.badge)}
-              preview={
-                <div className="flex flex-col items-center gap-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- live SVG badge */}
-                  <img src={`/badge/${enc}.svg${metric === "traffic" ? "" : `?metric=${metric}`}`} alt="Badge preview" height={20} />
-                  <div role="radiogroup" aria-label="Badge type" className="flex gap-1">
-                    {(["traffic", "stack", "grade"] as const).map((m) => (
-                      <button
-                        key={m}
-                        role="radio"
-                        aria-checked={metric === m}
-                        onClick={() => setMetric(m)}
-                        className={cn("rounded px-2 py-0.5 text-[11px] capitalize", metric === m ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}
-                      >
-                        {m === "stack" ? "Tech stack" : m === "grade" ? "Security" : "Traffic"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              }
-            />
-            <Snippet
-              id="image"
-              title="Live image card"
-              description="The card image, always up to date. Works in any site builder."
-              code={snippets.image}
-              copied={copied === "image"}
-              onCopy={() => copy("image", snippets.image)}
-              // eslint-disable-next-line @next/next/no-img-element -- live PNG card
-              preview={<img src={`${cardUrl}?size=small`} alt="Card preview" width={300} height={158} className="rounded-md border" />}
-            />
-            <Snippet
-              id="html"
-              title="HTML card"
-              description="Plain HTML you can restyle. Numbers are a snapshot from this scan."
-              code={snippets.html}
-              copied={copied === "html"}
-              onCopy={() => copy("html", snippets.html)}
-              preview={<div className="w-full" dangerouslySetInnerHTML={{ __html: snippets.html }} />}
-            />
-          </TabsContent>
-        </Tabs>
+          </div>
+        ) : (
+          <div className="min-h-0 space-y-3 overflow-y-auto">
+            <Choice label="Embed type" value={embed} onChange={setEmbed} options={EMBEDS} />
+            <div className={cn("flex items-center justify-center overflow-hidden", embed === "badge" ? "py-1" : "bg-muted/40 min-h-16 rounded-md p-3")}>
+              {embed === "badge" ? (
+                // eslint-disable-next-line @next/next/no-img-element -- live SVG badge
+                <img src={`/badge/${enc}.svg${metric === "traffic" ? "" : `?metric=${metric}`}`} alt="" height={20} className="max-w-full" />
+              ) : embed === "image" ? (
+                // eslint-disable-next-line @next/next/no-img-element -- live PNG card
+                <img src={`${cardUrl}?size=small`} alt="" width={300} height={158} className="w-full max-w-xs rounded-md border" />
+              ) : (
+                <div className="w-full overflow-hidden [&_div]:max-w-full" dangerouslySetInnerHTML={{ __html: snippets.html }} />
+              )}
+            </div>
+            {embed === "badge" && <Choice label="Badge type" value={metric} onChange={setMetric} options={METRICS} />}
+            <div className="flex items-center gap-2">
+              <Button className="min-w-0 flex-1" size="sm" onClick={() => copy(embed, code)}>
+                {copied === embed ? <Check /> : <Copy />}
+                {copied === embed ? "Copied" : "Copy code"}
+              </Button>
+              <Button size="sm" variant="ghost" className="shrink-0" onClick={() => setShowCode((v) => !v)}>
+                {showCode ? "Hide" : "Code"}
+              </Button>
+            </div>
+            {showCode && (
+              <pre className="bg-muted max-h-24 overflow-auto rounded-md p-2 font-mono text-[11px] leading-relaxed break-all whitespace-pre-wrap" data-snippet={embed}>
+                {code}
+              </pre>
+            )}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -43,14 +43,11 @@ export function TrafficSection({ report: r, est: e }: { report: Report; est: Est
   const cwv = tr.crux?.inCrux ? tr.crux.coreWebVitals : null;
 
   return (
-    <Section id="traffic" title="Traffic" description="Where the numbers come from, who visits, and how they typically behave.">
+    <Section id="traffic" title="Traffic">
       <div className="grid gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>How we estimate monthly visits</CardTitle>
-            <CardDescription>
-              Each public signal gives its own estimate. When they agree, the combined range is narrow and confidence is higher.
-            </CardDescription>
+            <CardTitle>Monthly visits</CardTitle>
           </CardHeader>
           <CardContent>
             {rows.length ? (
@@ -83,9 +80,7 @@ export function TrafficSection({ report: r, est: e }: { report: Report; est: Est
               </>
             ) : (
               <p className="text-muted-foreground text-sm">
-                {tr.verdict === "too-small"
-                  ? "Not in the Chrome UX Report, so Chrome has too few visitors to publish data. Likely a few thousand visits a month or less."
-                  : "This domain is not in any popularity list we track. It is probably small or new. We would rather say so than invent a number."}
+                {tr.verdict === "too-small" ? "Too small for the Chrome UX Report." : "Not in our popularity lists."}
               </p>
             )}
             {tr.organic && (
@@ -107,7 +102,7 @@ export function TrafficSection({ report: r, est: e }: { report: Report; est: Est
             <CardTitle className="flex items-center gap-2">
               <Globe2 className="text-muted-foreground size-4" /> Audience
             </CardTitle>
-            <CardDescription>{e.countries.length ? "Estimated share of visits by country (from Chrome popularity per country)." : "Country and device data appear when the site is in the Chrome UX Report."}</CardDescription>
+            <CardDescription>{e.countries.length ? "Estimated country share" : "No country data"}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {e.countries.length > 0 ? (
@@ -162,9 +157,7 @@ export function TrafficSection({ report: r, est: e }: { report: Report; est: Est
             <CardTitle className="flex items-center gap-2">
               <Timer className="text-muted-foreground size-4" /> Engagement
             </CardTitle>
-            <CardDescription>
-              Typical for {/^[aeiou]/i.test(e.siteType.label) ? "an" : "a"} {e.siteType.label.toLowerCase()}. These are industry benchmarks, not measured for this site. {e.siteType.reason}
-            </CardDescription>
+            <CardDescription>Typical for this kind of site, not measured here.</CardDescription>
           </CardHeader>
           <CardContent>
             <dl className="grid gap-3 sm:grid-cols-3">
