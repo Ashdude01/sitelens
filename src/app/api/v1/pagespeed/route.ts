@@ -4,6 +4,8 @@ import { clientKeyFromHeaders } from "@/server/services/client-key";
 import { getPagespeed } from "@/server/services/pagespeed-service";
 import { PsiError } from "@/server/pagespeed/psi";
 
+export const maxDuration = 60;
+
 /** GET /api/v1/pagespeed?domain=example.com&strategy=mobile|desktop — Google PageSpeed Insights, cached. */
 export async function GET(req: NextRequest) {
   const domain = req.nextUrl.searchParams.get("domain") ?? "";

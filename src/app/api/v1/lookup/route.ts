@@ -4,6 +4,8 @@ import { clientKeyFromHeaders } from "@/server/services/client-key";
 
 const cors = { "access-control-allow-origin": "*" };
 
+export const maxDuration = 60;
+
 /**
  * GET /api/v1/lookup?domain=example.com[&refresh=1]
  * Returns the full report JSON. Cached reads are free; new scans are rate-limited per client.

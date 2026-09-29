@@ -22,6 +22,8 @@ import {
   type Target,
 } from "@/server/services/report-service";
 
+export const maxDuration = 60;
+
 function parseTarget(raw: string): Target | null {
   try {
     return normalizeTarget(decodeURIComponent(raw));
