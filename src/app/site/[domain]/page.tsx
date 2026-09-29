@@ -80,7 +80,7 @@ export default async function SitePage({ params }: PageProps<"/site/[domain]">) 
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4">{body}</main>
+      <main className="mx-auto w-full max-w-[1700px] flex-1 px-4">{body}</main>
       <SiteDirectory exclude={target.key} />
       <SiteFooter />
     </>

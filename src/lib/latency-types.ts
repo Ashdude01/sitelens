@@ -1,12 +1,25 @@
 /** Probe locations that together cover the major parts of the world. */
 export const LATENCY_REGIONS = [
   { code: "US", name: "United States" },
-  { code: "JP", name: "Japan" },
-  { code: "RU", name: "Russia" },
+  { code: "CA", name: "Canada" },
+  { code: "BR", name: "Brazil" },
   { code: "GB", name: "United Kingdom" },
+  { code: "DE", name: "Germany" },
+  { code: "FR", name: "France" },
+  { code: "ES", name: "Spain" },
+  { code: "PT", name: "Portugal" },
+  { code: "IT", name: "Italy" },
+  { code: "NL", name: "Netherlands" },
+  { code: "RU", name: "Russia" },
+  { code: "IN", name: "India" },
+  { code: "CN", name: "China" },
+  { code: "JP", name: "Japan" },
+  { code: "KR", name: "South Korea" },
   { code: "SG", name: "Singapore" },
-  { code: "SA", name: "Saudi Arabia" },
   { code: "AU", name: "Australia" },
+  { code: "SA", name: "Saudi Arabia" },
+  { code: "AE", name: "United Arab Emirates" },
+  { code: "ZA", name: "South Africa" },
 ] as const;
 
 export type RegionCode = (typeof LATENCY_REGIONS)[number]["code"];

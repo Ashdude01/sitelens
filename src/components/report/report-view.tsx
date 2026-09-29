@@ -96,11 +96,11 @@ export function ReportView({ report, history }: { report: CachedReport; history:
         </Alert>
       ))}
 
-      <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-8">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
         <div className="min-w-0">
           <OverviewSection report={r} est={est} summary={summary} />
-          {/* On smaller screens the PageSpeed panel sits right after the overview. */}
-          <MediaSlot query="(max-width: 1279px)">
+          {/* Below the lg breakpoint the checks sit under the overview. */}
+          <MediaSlot query="(max-width: 1023px)">
             <div className="mb-10">
               <ReportRail domain={r.domain} />
             </div>
@@ -124,9 +124,9 @@ export function ReportView({ report, history }: { report: CachedReport; history:
 
           <HealthSection scores={scores} />
         </div>
-        <aside className="hidden xl:block" aria-label="Website preview and checks">
+        <aside className="hidden lg:block" aria-label="Page speed and worldwide reach">
           <div className="sticky top-32 max-h-[calc(100vh-9rem)] overflow-y-auto pb-6 [scrollbar-width:thin]">
-            <MediaSlot query="(min-width: 1280px)">
+            <MediaSlot query="(min-width: 1024px)">
               <ReportRail domain={r.domain} />
             </MediaSlot>
           </div>

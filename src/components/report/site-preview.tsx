@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
-/** Homepage preview shown at the top of the report sidebar. */
-export function SitePreview({ domain }: { domain: string }) {
+/** Homepage preview. Width matches the previous sidebar (340px). */
+export function SitePreview({ domain, className }: { domain: string; className?: string }) {
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
   return (
-    <figure className="bg-card overflow-hidden rounded-xl border">
+    <figure className={cn("bg-card w-full max-w-[340px] shrink-0 overflow-hidden rounded-xl border", className)}>
       <div className="bg-muted relative aspect-[16/10]">
         {!failed && (
           // eslint-disable-next-line @next/next/no-img-element -- screenshot is a dynamic image from our own preview route

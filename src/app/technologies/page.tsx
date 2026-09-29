@@ -30,7 +30,7 @@ export default async function TechnologiesPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10">
+      <main className="mx-auto w-full max-w-[1700px] flex-1 px-4 py-10">
         <h1 className="text-3xl font-semibold tracking-tight">Technologies</h1>
         <p className="text-muted-foreground mt-2 max-w-2xl">
           {fmt(fp.techs.length)} technologies across {cats.length} categories that we can detect. Pick one to see how we detect it and which sites use it.

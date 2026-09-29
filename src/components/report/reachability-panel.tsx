@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Globe, Loader2, RefreshCw } from "lucide-react";
-import type { LatencyReport, RegionLatency, RegionStatus } from "@/lib/latency-types";
+import { LATENCY_REGIONS, type LatencyReport, type RegionLatency, type RegionStatus } from "@/lib/latency-types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,13 @@ function tone(status: RegionStatus, ttfbMs: number | null) {
   return "text-muted-foreground";
 }
 
+function Flag({ code }: { code: string }) {
+  const iso = code.toLowerCase();
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- small country flag in webp
+    <img src={`https://flagcdn.com/w40/${iso}.webp`} alt="" width={20} height={15} className="h-[15px] w-5 shrink-0 rounded-[2px] object-cover" />
+  );
+}
 function timing(region: RegionLatency) {
   if (region.status === "ok" && region.ttfbMs != null) return `${Math.round(region.ttfbMs)} ms`;
   if (region.status === "blocked" && region.ttfbMs != null) return `Blocked · ${Math.round(region.ttfbMs)} ms`;
@@ -82,8 +89,11 @@ export function ReachabilityPanel({ domain }: { domain: string }) {
           <p className="mb-3 text-sm">{summary}</p>
           <ul className="space-y-1.5">
             {data.regions.map((region) => (
-              <li key={region.code} className="flex items-baseline justify-between gap-3 text-sm">
-                <span className="min-w-0 truncate">{region.name}</span>
+              <li key={region.code} className="flex items-center justify-between gap-3 text-sm">
+                <span className="flex min-w-0 items-center gap-2">
+                  <Flag code={region.code} />
+                  <span className="truncate">{region.name}</span>
+                </span>
                 <span className={cn("shrink-0 text-xs font-medium tabular-nums", tone(region.status, region.ttfbMs))}>{timing(region)}</span>
               </li>
             ))}
@@ -100,9 +110,9 @@ export function ReachabilityPanel({ domain }: { domain: string }) {
       ) : (
         <div className="space-y-2" aria-busy="true">
           <p className="text-muted-foreground flex items-center gap-2 text-xs">
-            <Loader2 className="size-3.5 animate-spin" /> Checking seven regions…
+            <Loader2 className="size-3.5 animate-spin" /> Checking {LATENCY_REGIONS.length} regions…
           </p>
-          {Array.from({ length: 7 }, (_, i) => (
+          {Array.from({ length: LATENCY_REGIONS.length }, (_, i) => (
             <Skeleton key={i} className="h-5" />
           ))}
         </div>

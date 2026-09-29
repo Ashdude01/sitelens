@@ -1,10 +1,10 @@
 import { fetch as ufetch } from "undici";
 import { config } from "../config";
-import { buildLatencyReport, type LatencyReport } from "@/lib/latency-types";
+import { buildLatencyReport, LATENCY_REGIONS, type LatencyReport } from "@/lib/latency-types";
 
 const API = "https://api.globalping.io/v1/measurements";
 const PROBES = "https://api.globalping.io/v1/probes";
-const WANTED = ["US", "JP", "RU", "GB", "SG", "SA", "AU"];
+const WANTED = LATENCY_REGIONS.map((region) => region.code);
 
 export class LatencyError extends Error {
   constructor(
@@ -82,7 +82,7 @@ export async function measureRegions(host: string): Promise<LatencyReport> {
   const id = first?.id ?? location?.split("/").pop();
   if (!id) throw new LatencyError("Globalping did not return a measurement id.");
 
-  const deadline = Date.now() + 22_000;
+  const deadline = Date.now() + 30_000;
   let latest: Measurement = first ?? {};
   while (Date.now() < deadline) {
     if (latest.status && latest.status !== "in-progress" && latest.results?.length) break;

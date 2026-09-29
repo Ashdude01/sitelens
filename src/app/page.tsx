@@ -50,7 +50,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-7xl gap-4 px-4 py-14 md:grid-cols-3">
+        <section className="mx-auto grid max-w-[1700px] gap-4 px-4 py-14 md:grid-cols-3">
           {FEATURES.map(({ icon: Icon, title, body }) => (
             <Card key={title}>
               <CardHeader>

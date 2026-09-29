@@ -83,7 +83,7 @@ export default async function TechnologyPage({ params }: PageProps<"/technology/
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4">
+      <main className="mx-auto w-full max-w-[1700px] flex-1 px-4">
         <nav aria-label="Breadcrumb" className="text-muted-foreground flex items-center gap-1 pt-6 text-sm">
           <Link href="/technologies" className="hover:text-foreground">Technologies</Link>
           {categories[0] && (

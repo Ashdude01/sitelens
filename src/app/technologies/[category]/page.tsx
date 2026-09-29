@@ -32,7 +32,7 @@ export default async function CategoryPage({ params }: PageProps<"/technologies/
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10">
+      <main className="mx-auto w-full max-w-[1700px] flex-1 px-4 py-10">
         <nav aria-label="Breadcrumb" className="text-muted-foreground flex items-center gap-1 text-sm">
           <Link href="/technologies" className="hover:text-foreground">Technologies</Link>
           <ChevronRight className="size-3.5" />

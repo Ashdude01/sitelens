@@ -10,7 +10,7 @@ export async function SiteDirectory({ exclude }: { exclude?: string }) {
   if (!r.length && !p.length) return null;
   return (
     <section aria-label="More sites" className="bg-muted/30 mt-4 border-t">
-      <div className="mx-auto max-w-7xl space-y-10 px-4 py-12">
+      <div className="mx-auto max-w-[1700px] space-y-10 px-4 py-12">
         {p.length > 0 && (
           <div>
             <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold tracking-tight">

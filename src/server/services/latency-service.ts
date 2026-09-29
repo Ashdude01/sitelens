@@ -1,4 +1,4 @@
-import type { LatencyReport } from "@/lib/latency-types";
+import { LATENCY_REGIONS, type LatencyReport } from "@/lib/latency-types";
 import { config } from "../config";
 import { measureRegions } from "../latency/globalping";
 import { normalizeTarget } from "../scanner/net";
@@ -35,7 +35,9 @@ function limiter() {
 export async function getLatency(input: string, { clientKey, force = false }: { clientKey?: string; force?: boolean } = {}): Promise<{ result: LatencyReport; cached: boolean }> {
   const target = normalizeTarget(input);
   const cached = await findLatency(target.key);
-  const fresh = cached && Date.now() - cached.fetchedAt < limits().ttlHours * 3_600_000;
+  const expected = LATENCY_REGIONS.map((region) => region.code).join(",");
+  const sameCountries = cached?.data.regions.map((region) => region.code).join(",") === expected;
+  const fresh = cached && sameCountries && Date.now() - cached.fetchedAt < limits().ttlHours * 3_600_000;
   if (cached && fresh && !force) return { result: cached.data, cached: true };
 
   const running = inflight.get(target.key);

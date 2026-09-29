@@ -7,7 +7,7 @@ import { config } from "@/server/config";
 export function SiteHeader({ showSearch = true }: { showSearch?: boolean }) {
   return (
     <header className="bg-background/80 sticky top-0 z-40 border-b backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
+      <div className="mx-auto flex h-14 max-w-[1700px] items-center gap-4 px-4">
         <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
           <span className="bg-primary text-primary-foreground grid size-7 place-items-center rounded-md">
             <ScanSearch className="size-4" />
@@ -35,7 +35,7 @@ export function SiteHeader({ showSearch = true }: { showSearch?: boolean }) {
 export function SiteFooter() {
   return (
     <footer className="text-muted-foreground mt-auto border-t py-6 text-sm">
-      <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto flex max-w-[1700px] flex-col gap-2 px-4 sm:flex-row sm:items-center sm:justify-between">
         <p>
           {config.siteName}: tech stacks with evidence, traffic as honest ranges.
         </p>

@@ -6,6 +6,7 @@ import { compact, fmt, yearsSince } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { StatTile } from "./stat-tile";
 import { Section } from "./section-nav";
+import { SitePreview } from "./site-preview";
 
 const CONF_VARIANT = { High: "success", Medium: "warning", Low: "destructive" } as const;
 
@@ -15,47 +16,52 @@ export function OverviewSection({ report: r, est: e, summary }: { report: Report
   const noData = "No data";
   return (
     <Section id="overview" title="Overview">
-      <div className="bg-accent/50 mb-4 flex gap-3 rounded-xl border p-4">
-        <Sparkles className="text-accent-foreground mt-0.5 size-4 shrink-0" />
-        <div className="space-y-2">
-          <p className="text-sm leading-relaxed text-pretty">{summary}</p>
-          <div className="flex flex-wrap gap-1.5">
-            <Badge variant="secondary">{e.siteType.label}</Badge>
-            {tr.verified ? (
-              <Badge variant="success">Verified traffic</Badge>
-            ) : tr.estimate ? (
-              <Badge variant={CONF_VARIANT[tr.estimate.confidence]}>{tr.estimate.confidence} confidence estimate</Badge>
-            ) : (
-              <Badge variant="outline">Traffic unknown</Badge>
-            )}
-            {tr.estimate && !tr.estimate.calibrated && <Badge variant="info">Uncalibrated model</Badge>}
+       <div className="bg-accent/50 mb-3 flex gap-3 rounded-xl border p-4">
+            <Sparkles className="text-accent-foreground mt-0.5 size-4 shrink-0" />
+            <div className="space-y-2">
+              <p className="text-sm leading-relaxed text-pretty">{summary}</p>
+              <div className="flex flex-wrap gap-1.5">
+                <Badge variant="secondary">{e.siteType.label}</Badge>
+                {tr.verified ? (
+                  <Badge variant="success">Verified traffic</Badge>
+                ) : tr.estimate ? (
+                  <Badge variant={CONF_VARIANT[tr.estimate.confidence]}>{tr.estimate.confidence} confidence estimate</Badge>
+                ) : (
+                  <Badge variant="outline">Traffic unknown</Badge>
+                )}
+                {tr.estimate && !tr.estimate.calibrated && <Badge variant="info">Uncalibrated model</Badge>}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        <StatTile
-          icon={Users}
-          label="Monthly visits"
-          value={e.visits ? (e.verified ? compact(e.visits.monthly.mid) : approx(e.visits.monthly)) : noData}
-          range={e.visits && !e.verified ? span(e.visits.monthly) : null}
-          muted={!e.visits}
-          note={e.verified ? "Verified" : e.visits ? "Estimated" : undefined}
-        />
-        <StatTile
-          icon={Users}
-          label="Daily unique visitors"
-          value={e.visits ? approx(e.visits.dailyUnique) : noData}
-          range={e.visits ? span(e.visits.dailyUnique) : null}
-          muted={!e.visits}
-        />
-        <StatTile
-          icon={Eye}
-          label="Daily pageviews"
-          value={e.pageviews ? approx(e.pageviews.daily) : noData}
-          range={e.pageviews ? span(e.pageviews.daily) : null}
-          muted={!e.pageviews}
-        />
+      <div className="flex flex-col gap-4 md:flex-row md:items-start">
+        <SitePreview domain={r.domain} />
+        <div className="min-w-0 flex-1">
+          
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <StatTile
+              icon={Users}
+              label="Monthly visits"
+              value={e.visits ? (e.verified ? compact(e.visits.monthly.mid) : approx(e.visits.monthly)) : noData}
+              range={e.visits && !e.verified ? span(e.visits.monthly) : null}
+              muted={!e.visits}
+              note={e.verified ? "Verified" : e.visits ? "Estimated" : undefined}
+            />
+            <StatTile
+              icon={Users}
+              label="Daily unique visitors"
+              value={e.visits ? approx(e.visits.dailyUnique) : noData}
+              range={e.visits ? span(e.visits.dailyUnique) : null}
+              muted={!e.visits}
+            />
+            <StatTile
+              icon={Eye}
+              label="Daily pageviews"
+              value={e.pageviews ? approx(e.pageviews.daily) : noData}
+              range={e.pageviews ? span(e.pageviews.daily) : null}
+              muted={!e.pageviews}
+            />
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3">
         <StatTile
           icon={Coins}
           label={e.earnings?.kind === "estimated" ? "Ad revenue / month" : "Ad potential / month"}
@@ -82,6 +88,12 @@ export function OverviewSection({ report: r, est: e, summary }: { report: Report
           <StatTile icon={CalendarClock} label="Domain age" value={age ? `${age} yrs` : "Unknown"} muted={!age} note={r.registration?.registrar ?? undefined} />
         )}
       </div>
+        </div>
+      </div>
+
+      
+
+     
     </Section>
   );
 }
