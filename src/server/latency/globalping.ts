@@ -36,7 +36,7 @@ interface Measurement {
   results?: unknown[];
 }
 
-async function readError(res: Response): Promise<string> {
+async function readError(res: { status: number; json: () => Promise<unknown> }): Promise<string> {
   const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
   return body?.error?.message?.split("\n")[0] ?? `Globalping request failed (HTTP ${res.status}).`;
 }
