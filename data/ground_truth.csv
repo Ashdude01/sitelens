@@ -1,0 +1,6 @@
+# domain,monthly_visits,source,period
+# source: verified (owner-connected GA4/Search Console) | public (published by the site / open analytics)
+# Add at least 8 sites that appear in a rank list per source, then run: npm run calibrate
+# Good free sources: analytics.usa.gov (US federal sites), Wikimedia pageview API, sites that publish their stats,
+# and your own users who connect Google Analytics.
+domain,monthly_visits,source,period

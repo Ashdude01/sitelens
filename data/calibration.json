@@ -1,0 +1,10 @@
+{
+  "calibrated": false,
+  "note": "DEFAULT PRIORS, NOT FITTED. Rough power-law guess (rank 1 ~ 80B visits/month, slope -1.1). Run `npm run calibrate` after adding real traffic numbers to data/ground_truth.csv to replace these with fitted values.",
+  "sources": {
+    "crux": { "a": 10.9, "b": -1.1, "sigma": 0.4 },
+    "umbrella": { "a": 10.9, "b": -1.1, "sigma": 0.6 },
+    "majestic": { "a": 10.9, "b": -1.1, "sigma": 0.7 },
+    "default": { "a": 10.9, "b": -1.1, "sigma": 0.7 }
+  }
+}
