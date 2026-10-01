@@ -1,0 +1,1 @@
+ALTER TABLE "ip2asn" ALTER COLUMN "asn" SET DATA TYPE bigint;

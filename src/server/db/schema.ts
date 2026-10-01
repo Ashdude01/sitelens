@@ -68,7 +68,7 @@ export const groundTruth = pgTable("ground_truth", {
 export const ip2asn = pgTable("ip2asn", {
   start: ms("start").primaryKey(),
   end: ms("end").notNull(),
-  asn: integer("asn").notNull(),
+  asn: ms("asn").notNull(),
   country: text("country"),
   org: text("org"),
 });

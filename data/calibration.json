@@ -1,10 +1,29 @@
 {
-  "calibrated": false,
-  "note": "DEFAULT PRIORS, NOT FITTED. Rough power-law guess (rank 1 ~ 80B visits/month, slope -1.1). Run `npm run calibrate` after adding real traffic numbers to data/ground_truth.csv to replace these with fitted values.",
+  "calibrated": true,
+  "fittedAt": "2026-10-01T03:44:47.773Z",
   "sources": {
-    "crux": { "a": 10.9, "b": -1.1, "sigma": 0.4 },
-    "umbrella": { "a": 10.9, "b": -1.1, "sigma": 0.6 },
-    "majestic": { "a": 10.9, "b": -1.1, "sigma": 0.7 },
-    "default": { "a": 10.9, "b": -1.1, "sigma": 0.7 }
-  }
+    "crux": {
+      "a": 10.7092,
+      "b": -0.9358,
+      "sigma": 0.489,
+      "n": 576
+    },
+    "umbrella": {
+      "a": 11.5795,
+      "b": -1.061,
+      "sigma": 0.6439,
+      "n": 520
+    },
+    "majestic": {
+      "a": 10.9,
+      "b": -1.1,
+      "sigma": 0.7
+    },
+    "default": {
+      "a": 10.9,
+      "b": -1.1,
+      "sigma": 0.7
+    }
+  },
+  "note": "Fitted on 2195 sites with known traffic."
 }

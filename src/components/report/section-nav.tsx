@@ -1,21 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 export const SECTIONS = [
-  { id: "overview", label: "Overview" },
-  { id: "traffic", label: "Traffic" },
-  { id: "earnings", label: "Earnings" },
-  { id: "technology", label: "Technology" },
-  { id: "infrastructure", label: "Infrastructure" },
-  { id: "health", label: "Health" },
+  { id: "overview" },
+  { id: "traffic" },
+  { id: "earnings" },
+  { id: "technology" },
+  { id: "infrastructure" },
+  { id: "health" },
 ] as const;
 
 /** Sticky in-page navigation that highlights the section in view. */
 export function SectionNav({ available }: { available: string[] }) {
   const items = SECTIONS.filter((s) => available.includes(s.id));
   const [active, setActive] = useState<string>(items[0]?.id ?? "");
+  const t = useTranslations("sections");
 
   const key = items.map((s) => s.id).join(",");
   useEffect(() => {
@@ -32,7 +34,7 @@ export function SectionNav({ available }: { available: string[] }) {
   }, [key]);
 
   return (
-    <nav aria-label="Report sections" className="bg-background/85 sticky top-14 z-30 -mx-4 mb-6 border-b px-4 backdrop-blur">
+    <nav aria-label={t("nav")} className="bg-background/85 sticky top-14 z-30 -mx-4 mb-6 border-b px-4 backdrop-blur">
       <ul className="flex gap-1 overflow-x-auto py-2 [scrollbar-width:none]">
         {items.map((s) => (
           <li key={s.id}>
@@ -44,7 +46,7 @@ export function SectionNav({ available }: { available: string[] }) {
                 active === s.id ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {s.label}
+              {t(s.id)}
             </a>
           </li>
         ))}

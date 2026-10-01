@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { BadgeDollarSign, CircleCheck, CircleDashed, Gem } from "lucide-react";
 import type { Estimates } from "@/lib/estimates";
 import { WORTH_MONTHS_OF_REVENUE } from "@/lib/estimates/assumptions";
@@ -7,38 +8,40 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Section } from "./section-nav";
 
-export function EarningsSection({ est: e }: { est: Estimates }) {
+export async function EarningsSection({ est: e }: { est: Estimates }) {
+  const t = await getTranslations("earnings");
+  const sections = await getTranslations("sections");
   const earn = e.earnings;
   if (!earn || !e.pageviews || !e.worth) {
     return (
-      <Section id="earnings" title="Earnings & worth">
-        <p className="text-muted-foreground rounded-xl border p-4 text-sm">Needs a traffic estimate.</p>
+      <Section id="earnings" title={sections("earnings")}>
+        <p className="text-muted-foreground rounded-xl border p-4 text-sm">{t("needs")}</p>
       </Section>
     );
   }
   const potential = earn.kind === "potential";
   return (
-    <Section id="earnings" title="Earnings & worth">
+    <Section id="earnings" title={sections("earnings")}>
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BadgeDollarSign className="text-muted-foreground size-4" />
-              {potential ? "Display-ad potential" : "Estimated ad revenue"}
+              {potential ? t("potential") : t("revenue")}
             </CardTitle>
             <CardDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
               {earn.adNetworks.length ? (
                 <span className="flex items-center gap-1">
-                  <CircleCheck className="text-success size-3.5" /> Ads: {earn.adNetworks.join(", ")}
+                  <CircleCheck className="text-success size-3.5" /> {t("ads", { names: earn.adNetworks.join(", ") })}
                 </span>
               ) : (
                 <span className="flex items-center gap-1">
-                  <CircleDashed className="size-3.5" /> No ad network detected
+                  <CircleDashed className="size-3.5" /> {t("noAds")}
                 </span>
               )}
               {earn.affiliate.length > 0 && (
                 <span className="flex items-center gap-1">
-                  <CircleCheck className="text-success size-3.5" /> Affiliate: {earn.affiliate.join(", ")}
+                  <CircleCheck className="text-success size-3.5" /> {t("affiliate", { names: earn.affiliate.join(", ") })}
                 </span>
               )}
             </CardDescription>
@@ -47,9 +50,9 @@ export function EarningsSection({ est: e }: { est: Estimates }) {
             <dl className="grid gap-3 sm:grid-cols-3">
               {(
                 [
-                  ["Per day", earn.daily],
-                  ["Per month", earn.monthly],
-                  ["Per year", earn.yearly],
+                  [t("day"), earn.daily],
+                  [t("month"), earn.monthly],
+                  [t("year"), earn.yearly],
                 ] as const
               ).map(([k, r]) => (
                 <div key={k} className="bg-muted/50 rounded-lg p-3">
@@ -59,7 +62,7 @@ export function EarningsSection({ est: e }: { est: Estimates }) {
                 </div>
               ))}
             </dl>
-            <div className="rounded-lg border p-3 text-sm">
+            {/* <div className="rounded-lg border p-3 text-sm">
               <p className="mb-2 font-medium">How we calculate it</p>
               <ol className="text-muted-foreground list-decimal space-y-1 pl-5">
                 <li>
@@ -75,18 +78,16 @@ export function EarningsSection({ est: e }: { est: Estimates }) {
               <p className="text-muted-foreground mt-2 text-xs">
                 Ranges combine the uncertainty of each step. Real revenue depends on niche, ad density and the ad network.
               </p>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Gem className="text-muted-foreground size-4" /> Estimated worth
+              <Gem className="text-muted-foreground size-4" /> {t("worth")}
             </CardTitle>
-            <CardDescription>
-              Content sites often sell for {WORTH_MONTHS_OF_REVENUE[0]}–{WORTH_MONTHS_OF_REVENUE[1]} months of revenue.
-            </CardDescription>
+            <CardDescription>{t("worthNote", { low: WORTH_MONTHS_OF_REVENUE[0], high: WORTH_MONTHS_OF_REVENUE[1] })}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -95,14 +96,12 @@ export function EarningsSection({ est: e }: { est: Estimates }) {
             </div>
             {(e.siteType.id === "ecommerce" || e.siteType.id === "saas") && (
               <Alert>
-                <AlertTitle>Businesses are valued on profit</AlertTitle>
-                <AlertDescription>
-                  This looks like {e.siteType.id === "ecommerce" ? "a store" : "a software product"}, so its real value depends on sales, not ads. Treat this as a floor.
-                </AlertDescription>
+                <AlertTitle>{t("storeTitle")}</AlertTitle>
+                <AlertDescription>{e.siteType.id === "ecommerce" ? t("store") : t("saas")}</AlertDescription>
               </Alert>
             )}
             <p className="text-muted-foreground text-xs">
-              Based on ~{compact(e.visits?.monthly.mid ?? 0)} monthly visits. Not financial advice.
+              {t("basis", { n: compact(e.visits?.monthly.mid ?? 0) })}
             </p>
           </CardContent>
         </Card>

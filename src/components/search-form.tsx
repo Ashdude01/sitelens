@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 import { ArrowRight, Loader2, Search } from "lucide-react";
 import { lookupAction, type LookupState } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 export function SearchForm({ size = "default", autoFocus = false, className }: { size?: "default" | "lg"; autoFocus?: boolean; className?: string }) {
+  const t = useTranslations("search");
   const [state, action, pending] = useActionState<LookupState, FormData>(lookupAction, { error: null });
   const lg = size === "lg";
   return (
@@ -23,19 +25,19 @@ export function SearchForm({ size = "default", autoFocus = false, className }: {
             autoCapitalize="off"
             spellCheck={false}
             inputMode="url"
-            aria-label="Domain"
+            aria-label={t("domain")}
             aria-invalid={!!state.error}
-            placeholder={lg ? "example.com" : "Analyze a domain…"}
+            placeholder={lg ? t("example") : t("placeholder")}
             className={cn("pl-9", lg && "bg-card h-12 pl-11 text-base md:text-base")}
           />
         </div>
         {lg ? (
           <Button type="submit" size="lg" className="h-12 px-6" disabled={pending}>
             {pending ? <Loader2 className="animate-spin" /> : <ArrowRight />}
-            Analyze
+            {t("analyze")}
           </Button>
         ) : (
-          <Button type="submit" size="icon" variant="secondary" disabled={pending} aria-label="Analyze">
+          <Button type="submit" size="icon" variant="secondary" disabled={pending} aria-label={t("analyze")}>
             {pending ? <Loader2 className="animate-spin" /> : <ArrowRight />}
           </Button>
         )}

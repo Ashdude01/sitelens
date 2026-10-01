@@ -1,8 +1,9 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { BadgeCheck, Globe2, Info, MonitorSmartphone, Timer } from "lucide-react";
 import type { Report } from "@/lib/types";
 import type { Estimates } from "@/lib/estimates";
-import { flag } from "@/lib/estimates";
+import { flag, countryName } from "@/lib/estimates";
 import { duration, span } from "@/lib/estimates/format";
 import { compact } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
@@ -14,40 +15,41 @@ import { SplitBar } from "@/components/charts/split-bar";
 import { KV, SectionLabel } from "./kv";
 import { Section } from "./section-nav";
 
-const SHORT: Record<string, string> = { crux: "Chrome UX Report", umbrella: "Cisco Umbrella", majestic: "Majestic Million" };
-const CONF_VARIANT = { High: "success", Medium: "warning", Low: "destructive" } as const;
-
-export function TrafficSection({ report: r, est: e }: { report: Report; est: Estimates }) {
+export async function TrafficSection({ report: r, est: e }: { report: Report; est: Estimates }) {
+  const t = await getTranslations("traffic");
+  const sections = await getTranslations("sections");
+  const locale = await getLocale();
   const tr = r.traffic;
+  const sources: Record<string, string> = { crux: t("cruxSrc"), umbrella: t("umbrellaSrc"), majestic: t("majesticSrc") };
 
   // Signal agreement rows
   const rows: RangeRow[] = [];
   if (tr.verified) {
-    rows.push({ label: "Verified (owner analytics)", low: tr.verified.monthlyVisits, mid: tr.verified.monthlyVisits, high: tr.verified.monthlyVisits, emphasis: true });
+    rows.push({ label: t("verifiedOwner"), low: tr.verified.monthlyVisits, mid: tr.verified.monthlyVisits, high: tr.verified.monthlyVisits, emphasis: true });
   } else if (tr.estimate) {
     for (const s of tr.estimate.signalsUsed) {
       const sig = s.sigmaLog10 ?? 0.5;
       const rank = tr.ranks.find((x) => x.source === s.source);
       rows.push({
-        label: SHORT[s.source] ?? s.source,
-        sublabel: rank ? (s.source === "crux" ? `top ${compact(rank.rank)} bucket` : `rank #${rank.rank.toLocaleString("en-US")}`) : undefined,
+        label: sources[s.source] ?? s.source,
+        sublabel: rank ? (s.source === "crux" ? t("bucket", { n: compact(rank.rank) }) : t("rank", { n: rank.rank.toLocaleString(locale) })) : undefined,
         low: s.pointEstimate / 10 ** sig,
         mid: s.pointEstimate,
         high: s.pointEstimate * 10 ** sig,
       });
     }
-    rows.push({ label: "Combined estimate", sublabel: `${tr.estimate.confidence} confidence`, ...tr.estimate.monthlyVisits, emphasis: true });
+    rows.push({ label: t("combined"), sublabel: tr.estimate.confidence === "High" ? t("high") : undefined, ...tr.estimate.monthlyVisits, emphasis: true });
   }
 
   const device = tr.crux?.inCrux ? tr.crux.deviceSplit : null;
   const cwv = tr.crux?.inCrux ? tr.crux.coreWebVitals : null;
 
   return (
-    <Section id="traffic" title="Traffic">
+    <Section id="traffic" title={sections("traffic")}>
       <div className="grid gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Monthly visits</CardTitle>
+            <CardTitle>{t("monthly")}</CardTitle>
           </CardHeader>
           <CardContent>
             {rows.length ? (
@@ -56,40 +58,38 @@ export function TrafficSection({ report: r, est: e }: { report: Report; est: Est
                 <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
                   {tr.verified ? (
                     <Badge variant="success">
-                      <BadgeCheck /> Verified
+                      <BadgeCheck /> {t("verified")}
                     </Badge>
-                  ) : tr.estimate ? (
-                    <>
-                      <Badge variant={CONF_VARIANT[tr.estimate.confidence]}>{tr.estimate.confidence} confidence</Badge>
-                      {!tr.estimate.calibrated && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Badge variant="info" className="cursor-help">
-                              <Info /> Uncalibrated model
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-64">Not yet fitted on sites with known traffic. Treat the range as an order of magnitude.</TooltipContent>
-                        </Tooltip>
-                      )}
-                    </>
+                  ) : tr.estimate?.confidence === "High" ? (
+                    <Badge variant="success">{t("high")}</Badge>
                   ) : null}
+                  {tr.estimate && !tr.estimate.calibrated && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="info" className="cursor-help">
+                          <Info /> {t("uncalibrated")}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-64">{t("uncalibratedTip")}</TooltipContent>
+                    </Tooltip>
+                  )}
                   <Link href="/methodology" className="text-primary ml-auto hover:underline">
-                    Methodology
+                    {t("methodology")}
                   </Link>
                 </div>
               </>
             ) : (
               <p className="text-muted-foreground text-sm">
-                {tr.verdict === "too-small" ? "Too small for the Chrome UX Report." : "Not in our popularity lists."}
+                {tr.verdict === "too-small" ? t("tooSmall") : t("notListed")}
               </p>
             )}
             {tr.organic && (
               <div className="mt-6">
-                <SectionLabel>Google search</SectionLabel>
+                <SectionLabel>{t("google")}</SectionLabel>
                 <KV
                   rows={[
-                    ["Organic visits (est.)", `~${compact(tr.organic.monthlyOrganicVisits)} / month`],
-                    ["Ranking keywords", compact(tr.organic.keywords)],
+                    [t("organic"), t("organicValue", { n: compact(tr.organic.monthlyOrganicVisits) })],
+                    [t("keywords"), compact(tr.organic.keywords)],
                   ]}
                 />
               </div>
@@ -100,9 +100,9 @@ export function TrafficSection({ report: r, est: e }: { report: Report; est: Est
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Globe2 className="text-muted-foreground size-4" /> Audience
+              <Globe2 className="text-muted-foreground size-4" /> {t("audience")}
             </CardTitle>
-            <CardDescription>{e.countries.length ? "Estimated country share" : "No country data"}</CardDescription>
+            <CardDescription>{e.countries.length ? t("countryShare") : t("noCountry")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {e.countries.length > 0 ? (
@@ -112,39 +112,45 @@ export function TrafficSection({ report: r, est: e }: { report: Report; est: Est
                   // Never claim 100% when other countries are listed too.
                   const display = pct < 1 ? "<1%" : pct > 99 && e.countries.length > 1 ? ">99%" : `${Math.round(pct)}%`;
                   const rank = tr.countries.find((x) => x.country.toUpperCase() === c.code)?.rank;
+                  const name = countryName(c.code, locale);
                   return {
                     key: c.code,
                     label: (
                       <span>
                         <span aria-hidden className="mr-1.5">{flag(c.code)}</span>
-                        {c.name}
+                        {name}
                       </span>
                     ),
                     value: c.share,
                     display,
-                    tooltip: `${c.name}: ~${display} of visits · top ${compact(rank ?? 0)} in the country`,
+                    tooltip: t("countryTip", { name, share: display, rank: compact(rank ?? 0) }),
                   };
                 })}
               />
             ) : (
-              <p className="text-muted-foreground text-sm">No country data yet.</p>
+              <p className="text-muted-foreground text-sm">{t("noCountryYet")}</p>
             )}
             {device && (
               <div>
                 <SectionLabel className="flex items-center gap-1.5">
-                  <MonitorSmartphone className="size-3.5" /> Devices (real Chrome users)
+                  <MonitorSmartphone className="size-3.5" /> {t("devices")}
                 </SectionLabel>
-                <SplitBar parts={Object.entries(device).map(([label, value]) => ({ label, value }))} />
+                <SplitBar
+                  parts={Object.entries(device).map(([label, value]) => ({
+                    label: label === "phone" || label === "desktop" || label === "tablet" ? t(label) : label,
+                    value,
+                  }))}
+                />
               </div>
             )}
             {cwv && (
               <div>
-                <SectionLabel>Core Web Vitals (p75, real users)</SectionLabel>
+                <SectionLabel>{t("cwv")}</SectionLabel>
                 <KV
                   rows={[
-                    ["Largest Contentful Paint", cwv.lcpMs != null ? `${(cwv.lcpMs / 1000).toFixed(2)} s` : "—"],
-                    ["Interaction to Next Paint", cwv.inpMs != null ? `${cwv.inpMs} ms` : "—"],
-                    ["Cumulative Layout Shift", cwv.cls != null ? String(cwv.cls) : "—"],
+                    [t("lcp"), cwv.lcpMs != null ? `${(cwv.lcpMs / 1000).toFixed(2)} s` : "—"],
+                    [t("inp"), cwv.inpMs != null ? `${cwv.inpMs} ms` : "—"],
+                    [t("cls"), cwv.cls != null ? String(cwv.cls) : "—"],
                   ]}
                 />
               </div>
@@ -155,21 +161,21 @@ export function TrafficSection({ report: r, est: e }: { report: Report; est: Est
         <Card className="lg:col-span-5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Timer className="text-muted-foreground size-4" /> Engagement
+              <Timer className="text-muted-foreground size-4" /> {t("engagement")}
             </CardTitle>
-            <CardDescription>Typical for this kind of site, not measured here.</CardDescription>
+            <CardDescription>{t("engagementNote")}</CardDescription>
           </CardHeader>
           <CardContent>
             <dl className="grid gap-3 sm:grid-cols-3">
               {[
-                ["Pages per visit", e.engagement.pagesPerVisit.mid.toFixed(1), span(e.engagement.pagesPerVisit, (n) => n.toFixed(1))],
-                ["Avg. visit duration", duration(e.engagement.durationSec.mid), span(e.engagement.durationSec, duration)],
-                ["Bounce rate", `${Math.round(e.engagement.bouncePct.mid)}%`, span(e.engagement.bouncePct, (n) => `${Math.round(n)}%`)],
+                [t("pages"), e.engagement.pagesPerVisit.mid.toFixed(1), span(e.engagement.pagesPerVisit, (n) => n.toFixed(1))],
+                [t("duration"), duration(e.engagement.durationSec.mid), span(e.engagement.durationSec, duration)],
+                [t("bounce"), `${Math.round(e.engagement.bouncePct.mid)}%`, span(e.engagement.bouncePct, (n) => `${Math.round(n)}%`)],
               ].map(([k, v, rng]) => (
                 <div key={k} className="bg-muted/50 rounded-lg p-3">
                   <dt className="text-muted-foreground text-xs">{k}</dt>
                   <dd className="text-xl font-semibold">{v}</dd>
-                  <dd className="text-muted-foreground text-xs tabular-nums">typical {rng}</dd>
+                  <dd className="text-muted-foreground text-xs tabular-nums">{t("typical", { range: rng })}</dd>
                 </div>
               ))}
             </dl>

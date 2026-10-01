@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { ExternalLink, Gauge, Loader2, Monitor, RefreshCw, Smartphone } from "lucide-react";
 import { formatMetric, scoreRating, type PsiResult, type PsiStrategy, type Rating } from "@/lib/pagespeed-types";
@@ -9,11 +10,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 
 // Status colors always come with a shape + label (never color alone), like PageSpeed Insights.
-const TONE: Record<Rating, { text: string; bg: string; label: string }> = {
-  good: { text: "text-success", bg: "bg-success", label: "Good" },
-  "needs-improvement": { text: "text-warning", bg: "bg-warning", label: "Needs improvement" },
-  poor: { text: "text-destructive", bg: "bg-destructive", label: "Poor" },
+const TONE: Record<Rating, { text: string; bg: string }> = {
+  good: { text: "text-success", bg: "bg-success" },
+  "needs-improvement": { text: "text-warning", bg: "bg-warning" },
+  poor: { text: "text-destructive", bg: "bg-destructive" },
 };
+
+function ratingLabel(t: (key: "good" | "mid" | "poor") => string, rating: Rating) {
+  return rating === "good" ? t("good") : rating === "needs-improvement" ? t("mid") : t("poor");
+}
 
 function RatingShape({ rating, className }: { rating: Rating; className?: string }) {
   const c = cn("inline-block shrink-0", TONE[rating].text, className);
@@ -22,14 +27,14 @@ function RatingShape({ rating, className }: { rating: Rating; className?: string
   return <svg viewBox="0 0 10 10" className={cn("size-2.5", c)} aria-hidden><path d="M5 0 10 10H0z" fill="currentColor" /></svg>;
 }
 
-function ScoreGauge({ score, label, size }: { score: number | null; label: string; size: number }) {
+function ScoreGauge({ score, label, size, ratingName }: { score: number | null; label: string; size: number; ratingName: string }) {
   const rating = scoreRating(score);
   const stroke = size > 80 ? 8 : 5;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   return (
     <div className="flex flex-col items-center gap-1.5 text-center">
-      <div className={cn("relative", TONE[rating].text)} style={{ width: size, height: size }} role="img" aria-label={`${label}: ${score ?? "n/a"} of 100, ${TONE[rating].label}`}>
+      <div className={cn("relative", TONE[rating].text)} style={{ width: size, height: size }} role="img" aria-label={`${label}: ${score ?? "n/a"} of 100, ${ratingName}`}>
         <svg width={size} height={size} className="-rotate-90">
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeOpacity={0.14} strokeWidth={stroke} />
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${((score ?? 0) / 100) * c} ${c}`} />
@@ -42,6 +47,7 @@ function ScoreGauge({ score, label, size }: { score: number | null; label: strin
 }
 
 function DistributionBar({ dist }: { dist: [number, number, number] }) {
+  const t = useTranslations("psi");
   const parts: [Rating, number][] = [
     ["good", dist[0]],
     ["needs-improvement", dist[1]],
@@ -55,22 +61,34 @@ function DistributionBar({ dist }: { dist: [number, number, number] }) {
         </div>
       </TooltipTrigger>
       <TooltipContent side="bottom">
-        {parts.map(([r, v]) => `${TONE[r].label} ${Math.round(v * 100)}%`).join(" · ")}
+        {parts.map(([r, v]) => `${ratingLabel(t, r)} ${Math.round(v * 100)}%`).join(" · ")}
       </TooltipContent>
     </Tooltip>
   );
 }
 
 function PanelBody({ data }: { data: PsiResult }) {
+  const t = useTranslations("psi");
   const perf = data.scores.find((s) => s.id === "performance");
   const others = data.scores.filter((s) => s.id !== "performance");
+  const scoreName = (id: string, fallback: string) =>
+    id === "performance" ? t("performance") : id === "accessibility" ? t("accessibility") : id === "best-practices" ? t("best") : id === "seo" ? t("seo") : fallback;
+  const metricName = (id: string, fallback: string) => {
+    const map: Record<string, "lcp" | "inp" | "cls" | "fcp" | "ttfb" | "tbt" | "si"> = {
+      LCP: "lcp", INP: "inp", CLS: "cls", FCP: "fcp", TTFB: "ttfb",
+      "largest-contentful-paint": "lcp", "interaction-to-next-paint": "inp", "cumulative-layout-shift": "cls",
+      "first-contentful-paint": "fcp", "total-blocking-time": "tbt", "speed-index": "si",
+    };
+    const key = map[id];
+    return key ? t(key) : fallback;
+  };
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-4">
-        <ScoreGauge score={perf?.score ?? null} label="Performance" size={96} />
+        <ScoreGauge score={perf?.score ?? null} label={t("performance")} size={96} ratingName={ratingLabel(t, scoreRating(perf?.score ?? null))} />
         <div className="grid flex-1 grid-cols-3 gap-1">
           {others.map((s) => (
-            <ScoreGauge key={s.id} score={s.score} label={s.label} size={46} />
+            <ScoreGauge key={s.id} score={s.score} label={scoreName(s.id, s.label)} size={46} ratingName={ratingLabel(t, scoreRating(s.score))} />
           ))}
         </div>
       </div>
@@ -82,14 +100,14 @@ function PanelBody({ data }: { data: PsiResult }) {
 
       <div className="rounded-lg border p-3">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="text-sm font-medium">Core Web Vitals</p>
+          <p className="text-sm font-medium">{t("cwv")}</p>
           {data.field?.passed != null ? (
             <span className={cn("flex items-center gap-1.5 text-xs font-semibold", data.field.passed ? "text-success" : "text-destructive")}>
               <RatingShape rating={data.field.passed ? "good" : "poor"} />
-              {data.field.passed ? "Passed" : "Failed"}
+              {data.field.passed ? t("passed") : t("failed")}
             </span>
           ) : (
-            <span className="text-muted-foreground text-xs">No assessment</span>
+            <span className="text-muted-foreground text-xs">{t("noField")}</span>
           )}
         </div>
         {data.field ? (
@@ -98,7 +116,7 @@ function PanelBody({ data }: { data: PsiResult }) {
               <li key={m.id}>
                 <div className="mb-1 flex items-baseline justify-between gap-2 text-xs">
                   <span className="text-muted-foreground">
-                    {m.label} {m.core && <span className="text-foreground font-medium">({m.id})</span>}
+                    {metricName(m.id, m.label)} {m.core && <span className="text-foreground font-medium">({m.id})</span>}
                   </span>
                   <span className={cn("flex items-center gap-1 font-semibold tabular-nums", TONE[m.rating].text)}>
                     <RatingShape rating={m.rating} />
@@ -111,23 +129,23 @@ function PanelBody({ data }: { data: PsiResult }) {
           </ul>
         ) : (
           <p className="text-muted-foreground text-xs leading-relaxed">
-            Not enough real Chrome users visit this site for Google to publish field data. Lab results are shown below.
+            {t("noChrome")}
           </p>
         )}
         {data.field && (
           <p className="text-muted-foreground mt-3 text-[11px]">
-            Real users over the last 28 days, 75th percentile{data.field.scope === "origin" ? " (whole site)" : ""}.
+            {t("fieldNote", { scope: data.field.scope === "origin" ? t("origin") : "" })}
           </p>
         )}
       </div>
 
       {data.lab.length > 0 && (
         <div>
-          <p className="mb-2 text-sm font-medium">Lab test (Lighthouse)</p>
+          <p className="mb-2 text-sm font-medium">{t("lab")}</p>
           <dl className="grid grid-cols-2 gap-2">
             {data.lab.map((m) => (
               <div key={m.id} className="bg-muted/50 rounded-md p-2">
-                <dt className="text-muted-foreground truncate text-[11px]">{m.label}</dt>
+                <dt className="text-muted-foreground truncate text-[11px]">{metricName(m.id, m.label)}</dt>
                 <dd className="flex items-center gap-1.5 text-sm font-semibold tabular-nums">
                   <RatingShape rating={m.rating} />
                   {m.display}
@@ -140,7 +158,7 @@ function PanelBody({ data }: { data: PsiResult }) {
 
       {data.opportunities.length > 0 && (
         <div>
-          <p className="mb-2 text-sm font-medium">Top fixes</p>
+          <p className="mb-2 text-sm font-medium">{t("fixes")}</p>
           <ul className="space-y-1.5 text-xs">
             {data.opportunities.map((o) => (
               <li key={o.title} className="flex items-start justify-between gap-3">
@@ -156,6 +174,7 @@ function PanelBody({ data }: { data: PsiResult }) {
 }
 
 export function PageSpeedPanel({ domain }: { domain: string }) {
+  const t = useTranslations("psi");
   const [strategy, setStrategy] = useState<PsiStrategy>("mobile");
   const [state, setState] = useState<Record<PsiStrategy, { data?: PsiResult; error?: string; loading?: boolean }>>({ mobile: {}, desktop: {} });
 
@@ -184,9 +203,9 @@ export function PageSpeedPanel({ domain }: { domain: string }) {
     <section aria-labelledby="psi-title" className="bg-card rounded-xl border p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2 id="psi-title" className="flex items-center gap-2 font-semibold">
-          <Gauge className="text-muted-foreground size-4" /> PageSpeed
+          <Gauge className="text-muted-foreground size-4" /> {t("title")}
         </h2>
-        <div role="tablist" aria-label="Device" className="bg-muted flex rounded-md p-0.5">
+        <div role="tablist" aria-label={t("device")} className="bg-muted flex rounded-md p-0.5">
           {(["mobile", "desktop"] as const).map((s) => (
             <button
               key={s}
@@ -199,7 +218,7 @@ export function PageSpeedPanel({ domain }: { domain: string }) {
               )}
             >
               {s === "mobile" ? <Smartphone className="size-3.5" /> : <Monitor className="size-3.5" />}
-              {s}
+              {s === "mobile" ? t("mobile") : t("desktop")}
             </button>
           ))}
         </div>
@@ -211,7 +230,7 @@ export function PageSpeedPanel({ domain }: { domain: string }) {
         <div className="space-y-3 py-6 text-center">
           <p className="text-muted-foreground text-sm">{cur.error}</p>
           <Button variant="outline" size="sm" onClick={() => load(strategy)}>
-            <RefreshCw /> Try again
+            <RefreshCw /> {t("retry")}
           </Button>
         </div>
       ) : (
@@ -225,17 +244,17 @@ export function PageSpeedPanel({ domain }: { domain: string }) {
             </div>
           </div>
           <p className="text-muted-foreground flex items-center justify-center gap-2 text-xs">
-            <Loader2 className="size-3.5 animate-spin" /> Running Google Lighthouse ({strategy}), this can take up to 30 s…
+            <Loader2 className="size-3.5 animate-spin" /> {t("running", { device: strategy === "mobile" ? t("mobile") : t("desktop") })}
           </p>
           <Skeleton className="h-40" />
         </div>
       )}
 
       <div className="text-muted-foreground mt-4 flex items-center justify-between gap-2 border-t pt-3 text-[11px]">
-        <span>{cur.data ? `Tested ${new Date(cur.data.fetchedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} via Google` : "Data from Google PageSpeed Insights"}</span>
+        <span>{cur.data ? t("tested", { date: new Date(cur.data.fetchedAt).toLocaleDateString(undefined, { day: "numeric", month: "short" }) }) : t("source")}</span>
         <div className="flex items-center gap-2">
           {cur.data && (
-            <button className="hover:text-foreground" onClick={() => load(strategy, true)} aria-label="Re-run PageSpeed test" title="Re-run test">
+            <button className="hover:text-foreground" onClick={() => load(strategy, true)} aria-label={t("rerun")} title={t("rerun")}>
               <RefreshCw className="size-3.5" />
             </button>
           )}
@@ -245,7 +264,7 @@ export function PageSpeedPanel({ domain }: { domain: string }) {
             rel="noopener noreferrer"
             className="hover:text-foreground flex items-center gap-1"
           >
-            Full report <ExternalLink className="size-3" />
+            {t("full")} <ExternalLink className="size-3" />
           </a>
         </div>
       </div>

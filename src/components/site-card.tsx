@@ -1,11 +1,13 @@
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { BadgeCheck } from "lucide-react";
 import type { SiteCard as SiteCardData } from "@/server/repositories/reports";
 import { compact } from "@/lib/format";
 import { Favicon } from "@/components/report/favicon";
 import { TechIcon } from "@/components/report/tech-icon";
 
-export function SiteCard({ site }: { site: SiteCardData }) {
+export async function SiteCard({ site }: { site: SiteCardData }) {
+  const t = await getTranslations("card");
   return (
     <Link
       href={`/site/${encodeURIComponent(site.domain)}`}
@@ -31,10 +33,11 @@ export function SiteCard({ site }: { site: SiteCardData }) {
         <span className="text-muted-foreground flex items-center gap-1 text-xs tabular-nums">
           {site.monthlyVisits ? (
             <>
-              {site.verified && <BadgeCheck className="text-success size-3.5" />}~{compact(site.monthlyVisits)} visits/mo
+              {site.verified && <BadgeCheck className="text-success size-3.5" />}
+              {t("visits", { n: compact(site.monthlyVisits) })}
             </>
           ) : (
-            "Traffic unknown"
+            t("unknown")
           )}
         </span>
       </div>

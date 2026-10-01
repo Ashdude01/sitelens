@@ -6,6 +6,7 @@ function openInNewTab(root: ParentNode) {
   root.querySelectorAll<HTMLAnchorElement>("a[href]").forEach((anchor) => {
     const href = anchor.getAttribute("href") ?? "";
     if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
+    if (anchor.hasAttribute("data-same-tab")) return;
     anchor.target = "_blank";
     const rel = new Set((anchor.getAttribute("rel") ?? "").split(/\s+/).filter(Boolean));
     rel.add("noopener");

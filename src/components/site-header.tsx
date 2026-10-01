@@ -1,10 +1,13 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { getTranslations } from "next-intl/server";
 import { ScanSearch } from "lucide-react";
 import { SearchForm } from "@/components/search-form";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { config } from "@/server/config";
 
-export function SiteHeader({ showSearch = true }: { showSearch?: boolean }) {
+export async function SiteHeader({ showSearch = true }: { showSearch?: boolean }) {
+  const t = await getTranslations("nav");
   return (
     <header className="bg-background/80 sticky top-0 z-40 border-b backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1700px] items-center gap-4 px-4">
@@ -17,13 +20,13 @@ export function SiteHeader({ showSearch = true }: { showSearch?: boolean }) {
         {showSearch && <SearchForm className="ml-auto max-w-sm" />}
         <nav className={showSearch ? "flex items-center gap-1" : "ml-auto flex items-center gap-1"}>
           <Link href="/technologies" className="text-muted-foreground hover:text-foreground hidden px-2 text-sm md:inline">
-            Technologies
+            {t("technologies")}
           </Link>
           <Link href="/methodology" className="text-muted-foreground hover:text-foreground hidden px-2 text-sm md:inline">
-            Methodology
+            {t("methodology")}
           </Link>
           <Link href="/docs/api" className="text-muted-foreground hover:text-foreground hidden px-2 text-sm md:inline">
-            API
+            {t("api")}
           </Link>
           <ThemeToggle />
         </nav>
@@ -32,20 +35,20 @@ export function SiteHeader({ showSearch = true }: { showSearch?: boolean }) {
   );
 }
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const t = await getTranslations("footer");
   return (
     <footer className="text-muted-foreground mt-auto border-t py-6 text-sm">
-      <div className="mx-auto flex max-w-[1700px] flex-col gap-2 px-4 sm:flex-row sm:items-center sm:justify-between">
-        <p>
-          {config.siteName}: tech stacks with evidence, traffic as honest ranges.
-        </p>
-        <div className="flex gap-4">
+      <div className="mx-auto flex max-w-[1700px] flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
+        <p>{t("tagline", { site: config.siteName })}</p>
+        <div className="flex flex-wrap items-center gap-4">
           <Link href="/methodology" className="hover:text-foreground">
-            How it works
+            {t("how")}
           </Link>
           <Link href="/docs/api" className="hover:text-foreground">
-            API
+            {t("api")}
           </Link>
+          <LanguageSwitcher />
         </div>
       </div>
     </footer>

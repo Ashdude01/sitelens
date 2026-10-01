@@ -1,11 +1,13 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import { rescanAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 
 export function RescanButton({ domain }: { domain: string }) {
+  const t = useTranslations("report");
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   return (
@@ -23,7 +25,7 @@ export function RescanButton({ domain }: { domain: string }) {
         }
       >
         {pending ? <Loader2 className="animate-spin" /> : <RefreshCw />}
-        {pending ? "Scanning…" : "Re-scan"}
+        {pending ? t("scanning") : t("rescan")}
       </Button>
       {error && <p className="text-destructive max-w-60 text-right text-xs">{error}</p>}
     </div>

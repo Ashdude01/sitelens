@@ -1,14 +1,16 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Info } from "lucide-react";
 import type { Technology } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 import { TechIcon } from "./tech-icon";
 
 /** A technology chip: the name opens its page, the (i) button shows why we detected it on this site. */
 export function TechChip({ tech }: { tech: Technology }) {
+  const t = useTranslations("tech");
   const weak = tech.confidence < 50;
   const href = tech.slug ? `/technology/${tech.slug}` : null;
   const inner = (
@@ -30,7 +32,7 @@ export function TechChip({ tech }: { tech: Technology }) {
       )}
       <Popover>
         <PopoverTrigger
-          aria-label={`Why we detected ${tech.name}`}
+          aria-label={t("whyAria", { name: tech.name })}
           className="text-muted-foreground hover:text-foreground hover:bg-accent data-[state=open]:bg-accent grid h-full place-items-center self-stretch rounded-r-md px-1.5 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <Info className="size-3.5" />
@@ -43,11 +45,12 @@ export function TechChip({ tech }: { tech: Technology }) {
                 {tech.name} {tech.version && <span className="text-muted-foreground font-normal">{tech.version}</span>}
               </p>
               <p className="text-muted-foreground text-xs">
-                {tech.categories.join(" · ")} · {tech.confidence}% confidence{tech.implied ? " · implied" : ""}
+                {tech.categories.join(" · ")} · {t("confidence", { n: tech.confidence })}
+                {tech.implied ? ` · ${t("implied")}` : ""}
               </p>
             </div>
             <div>
-              <p className="mb-1 text-xs font-medium">Why we detected it here</p>
+              <p className="mb-1 text-xs font-medium">{t("whyHere")}</p>
               <ul className="space-y-1">
                 {tech.evidence.map((e) => (
                   <li key={e} className="bg-muted rounded px-2 py-1 font-mono text-[11px] leading-snug break-all">
@@ -58,7 +61,7 @@ export function TechChip({ tech }: { tech: Technology }) {
             </div>
             {href && (
               <Link href={href} className="text-primary text-xs hover:underline">
-                About {tech.name} and other sites using it →
+                {t("about", { name: tech.name })}
               </Link>
             )}
           </div>

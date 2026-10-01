@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { Check, Copy, Share2 } from "lucide-react";
 import type { CardData } from "@/server/export/card-data";
@@ -81,6 +82,7 @@ function Choice<T extends string>({
 
 export function ExportDialog({ data, publicUrl }: { data: CardData; publicUrl: string }) {
   const { copied, copy } = useCopy();
+  const t = useTranslations("export");
   const [panel, setPanel] = useState<"download" | "embed">("download");
   const [embed, setEmbed] = useState<EmbedKind>("badge");
   const [metric, setMetric] = useState<BadgeMetric>("traffic");
@@ -124,21 +126,21 @@ export function ExportDialog({ data, publicUrl }: { data: CardData; publicUrl: s
     <Dialog>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
-          <Share2 /> Export
+          <Share2 /> {t("export")}
         </Button>
       </DialogTrigger>
       <DialogContent className="flex max-h-[min(92dvh,34rem)] w-[min(26rem,calc(100%-1.25rem))] flex-col gap-3 overflow-hidden p-4 sm:max-w-md sm:p-5">
         <DialogHeader className="gap-1 pr-6 text-left">
-          <DialogTitle className="text-base">Export</DialogTitle>
+          <DialogTitle className="text-base">{t("export")}</DialogTitle>
           <DialogDescription className="truncate text-xs">{data.domain}</DialogDescription>
         </DialogHeader>
 
-        <Choice label="Export type" value={panel} options={[{ id: "download", label: "Download" }, { id: "embed", label: "Embed" }]} onChange={setPanel} />
+        <Choice label={t("type")} value={panel} options={[{ id: "download", label: t("download") }, { id: "embed", label: t("embed") }]} onChange={setPanel} />
 
         {panel === "download" ? (
           <div className="min-h-0 space-y-3 overflow-y-auto">
             {/* eslint-disable-next-line @next/next/no-img-element -- generated PNG preview */}
-            <img src={cardUrl} alt={`${data.domain} report card`} width={1200} height={630} className="aspect-[40/21] w-full rounded-md border object-cover" />
+            <img src={cardUrl} alt={t("cardAlt", { domain: data.domain })} width={1200} height={630} className="aspect-[40/21] w-full rounded-md border object-cover" />
             <div className="grid grid-cols-2 gap-2">
               <Button asChild variant="outline" size="sm">
                 <a href={`${cardUrl}?download=1`} download={`${file}-sitelens.png`}>
@@ -146,7 +148,7 @@ export function ExportDialog({ data, publicUrl }: { data: CardData; publicUrl: s
                 </a>
               </Button>
               <Button variant="outline" size="sm" onClick={downloadJpg} disabled={jpgBusy}>
-                {jpgBusy ? "Saving…" : "JPG"}
+                {jpgBusy ? t("saving") : "JPG"}
               </Button>
               <Button asChild variant="outline" size="sm">
                 <a href={`/api/v1/export/${enc}?format=pdf`} download={`${file}-sitelens-report.pdf`}>
@@ -155,13 +157,13 @@ export function ExportDialog({ data, publicUrl }: { data: CardData; publicUrl: s
               </Button>
               <Button variant="outline" size="sm" onClick={() => copy("link", data.reportUrl)}>
                 {copied === "link" ? <Check /> : null}
-                {copied === "link" ? "Copied" : "Copy link"}
+                {copied === "link" ? t("copied") : t("copyLink")}
               </Button>
             </div>
           </div>
         ) : (
           <div className="min-h-0 space-y-3 overflow-y-auto">
-            <Choice label="Embed type" value={embed} onChange={setEmbed} options={EMBEDS} />
+            <Choice label={t("embedType")} value={embed} onChange={setEmbed} options={[{ id: "badge", label: t("badge") }, { id: "image", label: t("image") }, { id: "html", label: t("html") }]} />
             <div className={cn("flex items-center justify-center overflow-hidden", embed === "badge" ? "py-1" : "bg-muted/40 min-h-16 rounded-md p-3")}>
               {embed === "badge" ? (
                 // eslint-disable-next-line @next/next/no-img-element -- live SVG badge
@@ -173,14 +175,14 @@ export function ExportDialog({ data, publicUrl }: { data: CardData; publicUrl: s
                 <div className="w-full overflow-hidden [&_div]:max-w-full" dangerouslySetInnerHTML={{ __html: snippets.html }} />
               )}
             </div>
-            {embed === "badge" && <Choice label="Badge type" value={metric} onChange={setMetric} options={METRICS} />}
+            {embed === "badge" && <Choice label={t("badgeType")} value={metric} onChange={setMetric} options={[{ id: "traffic", label: t("traffic") }, { id: "stack", label: t("stack") }, { id: "grade", label: t("security") }]} />}
             <div className="flex items-center gap-2">
               <Button className="min-w-0 flex-1" size="sm" onClick={() => copy(embed, code)}>
                 {copied === embed ? <Check /> : <Copy />}
-                {copied === embed ? "Copied" : "Copy code"}
+                {copied === embed ? t("copied") : t("copyCode")}
               </Button>
               <Button size="sm" variant="ghost" className="shrink-0" onClick={() => setShowCode((v) => !v)}>
-                {showCode ? "Hide" : "Code"}
+                {showCode ? t("hide") : t("code")}
               </Button>
             </div>
             {showCode && (

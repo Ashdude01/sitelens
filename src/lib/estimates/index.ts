@@ -70,10 +70,15 @@ export function classifySite(r: Report): { id: SiteTypeId; label: string; reason
 
 // ---------- countries ----------
 
-const regionNames = typeof Intl !== "undefined" && "DisplayNames" in Intl ? new Intl.DisplayNames(["en"], { type: "region" }) : null;
-export const countryName = (code: string) => {
+const regionNames = new Map<string, Intl.DisplayNames>();
+export const countryName = (code: string, locale = "en") => {
   try {
-    return regionNames?.of(code.toUpperCase()) ?? code;
+    let names = regionNames.get(locale);
+    if (!names) {
+      names = new Intl.DisplayNames([locale], { type: "region" });
+      regionNames.set(locale, names);
+    }
+    return names.of(code.toUpperCase()) ?? code;
   } catch {
     return code;
   }

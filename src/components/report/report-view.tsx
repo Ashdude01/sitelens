@@ -1,10 +1,12 @@
+import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
+import { Link as LocaleLink } from "@/i18n/navigation";
 import { Braces, TriangleAlert } from "lucide-react";
 import type { CachedReport, TechChange } from "@/lib/types";
 import { computeEstimates } from "@/lib/estimates";
 import { computeScores } from "@/lib/estimates/scores";
 import { summarize } from "@/lib/estimates/summary";
-import { ago, fmt } from "@/lib/format";
+import { fmt } from "@/lib/format";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,8 +57,9 @@ export function ReportHeader({ domain, title, description, favicon, actions }: {
   );
 }
 
-export function ReportView({ report, history }: { report: CachedReport; history: TechChange[] }) {
-  // Fill in slugs/icons for reports cached before those fields existed.
+export async function ReportView({ report, history }: { report: CachedReport; history: TechChange[] }) {
+  const t = await getTranslations();
+  const locale = await getLocale();
   const fp = loadFingerprints();
   const r: CachedReport = {
     ...report,
@@ -64,7 +67,7 @@ export function ReportView({ report, history }: { report: CachedReport; history:
   };
   const est = computeEstimates(r);
   const scores = computeScores(r);
-  const summary = summarize(r, est);
+  const summary = summarize(r, est, t as unknown as (key: string, values?: Record<string, string | number>) => string, locale);
   const sections = ["overview", "traffic", "earnings", "technology", "infrastructure", ...(scores ? ["health"] : [])];
 
   return (
@@ -76,7 +79,13 @@ export function ReportView({ report, history }: { report: CachedReport; history:
         favicon={r.site?.favicon}
         actions={
           <div className="flex flex-wrap items-start gap-2">
-            <span className="text-muted-foreground pt-1.5 text-xs">Scanned {ago(r.cache.ageHours)}</span>
+            <span className="text-muted-foreground pt-1.5 text-xs">
+              {r.cache.ageHours < 1
+                ? t("report.scannedNow")
+                : r.cache.ageHours < 48
+                  ? t("report.scannedHours", { n: Math.round(r.cache.ageHours) })
+                  : t("report.scannedDays", { n: Math.round(r.cache.ageHours / 24) })}
+            </span>
             <Button asChild variant="outline" size="sm">
               <Link href={`/api/v1/lookup?domain=${encodeURIComponent(r.domain)}`} prefetch={false}>
                 <Braces /> JSON
@@ -92,7 +101,13 @@ export function ReportView({ report, history }: { report: CachedReport; history:
       {r.notes.map((n) => (
         <Alert key={n} variant="warning" className="mb-6">
           <TriangleAlert />
-          <AlertDescription>{n}</AlertDescription>
+          <AlertDescription>
+            {n.startsWith("This site's robots.txt")
+              ? t("notes.robots")
+              : n.startsWith("Headless browser pass failed")
+                ? t("notes.browser", { error: n.match(/\((.*)\)/)?.[1] ?? "" })
+                : n}
+          </AlertDescription>
         </Alert>
       ))}
 
@@ -108,14 +123,14 @@ export function ReportView({ report, history }: { report: CachedReport; history:
           <TrafficSection report={r} est={est} />
           <EarningsSection est={est} />
 
-          <Section id="technology" title="Technology">
+          <Section id="technology" title={t("sections.technology")}>
             <div className="space-y-4">
               <TechStackCard technologies={r.technologies} />
               <TechChangesCard history={history} />
             </div>
           </Section>
 
-          <Section id="infrastructure" title="Infrastructure">
+          <Section id="infrastructure" title={t("sections.infrastructure")}>
             <div className="grid gap-4 lg:grid-cols-2">
               <InfraCard report={r} />
               <WebsiteCard report={r} />
@@ -124,7 +139,7 @@ export function ReportView({ report, history }: { report: CachedReport; history:
 
           <HealthSection scores={scores} />
         </div>
-        <aside className="hidden lg:block" aria-label="Page speed and worldwide reach">
+        <aside className="hidden lg:block" aria-label={t("report.aside")}>
           <div className="sticky top-32 max-h-[calc(100vh-9rem)] overflow-y-auto pb-6 [scrollbar-width:thin]">
             <MediaSlot query="(min-width: 1024px)">
               <ReportRail domain={r.domain} />
@@ -134,24 +149,25 @@ export function ReportView({ report, history }: { report: CachedReport; history:
       </div>
 
       <p className="text-muted-foreground border-t pt-4 pb-12 text-xs">
-        {r.mode === "browser" ? "Browser render" : "HTML + DNS + SSL"} · {fmt(r.scanMs)} ms ·{" "}
-        <Link href="/methodology" className="text-primary hover:underline">
-          Methodology
-        </Link>
+        {r.mode === "browser" ? t("report.browser") : t("report.html")} · {fmt(r.scanMs)} ms ·{" "}
+        <LocaleLink href="/methodology" className="text-primary hover:underline">
+          {t("report.methodology")}
+        </LocaleLink>
       </p>
     </>
   );
 }
 
-export function ReportSkeleton({ domain }: { domain: string }) {
+export async function ReportSkeleton({ domain }: { domain: string }) {
+  const t = await getTranslations("report");
   return (
     <>
       <ReportHeader
         domain={domain}
-        description="Analyzing: fetching the homepage, DNS and SSL records. This usually takes 2–10 seconds."
+        description={t("analyzing")}
         actions={<Skeleton className="h-8 w-28" />}
       />
-      <div className="space-y-4 pb-12" aria-busy="true" aria-label="Loading report">
+      <div className="space-y-4 pb-12" aria-busy="true" aria-label={t("loading")}>
         <Skeleton className="h-20" />
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           {Array.from({ length: 6 }, (_, i) => (

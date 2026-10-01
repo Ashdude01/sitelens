@@ -15,6 +15,7 @@ import { Readable } from "node:stream";
 import { unzipSync } from "fflate";
 import { getDb } from "@/server/db/client";
 import { replaceCruxCountry, replaceSource } from "@/server/repositories/ranks";
+import { isTransientDbError } from "@/server/db/bulk";
 
 const args = process.argv.slice(2);
 const kind = args[0];
@@ -54,12 +55,30 @@ async function openLines(): Promise<AsyncIterable<string>> {
     const name = Object.keys(files).find((n) => n.endsWith(".csv")) ?? Object.keys(files)[0];
     buf = Buffer.from(files[name]);
   }
-  return readline.createInterface({ input: Readable.from(buf), crlfDelay: Infinity });
+  return linesOf(buf);
+}
+
+/**
+ * Lines of a buffer, opened lazily. readline starts emitting lines as soon as it is created, and lines
+ * emitted before `for await` attaches are lost. The importer awaits the database (clearing the old
+ * list) before it reads the first line, so an eagerly created reader lost the whole file and the import
+ * hung until the database dropped the idle connection ("write CONNECTION_CLOSED").
+ * Inside this generator the reader is created and iterated in the same tick, and the async iterator
+ * buffers lines while the importer waits on the database.
+ */
+async function* linesOf(buf: Buffer): AsyncGenerator<string> {
+  const rl = readline.createInterface({ input: Readable.from(buf), crlfDelay: Infinity });
+  for await (const line of rl) yield line;
 }
 
 const splitCsv = (line: string) => line.split(",").map((s) => s.trim().replace(/^"|"$/g, ""));
+let lastLogged = 0;
 const progress = (n: number) => {
-  if (n % 200_000 < 3000) process.stdout.write(`  ${n.toLocaleString()} rows\r`);
+  // One line per ~50k rows, so if an import stops you can see how far it got.
+  if (n - lastLogged >= 50_000) {
+    lastLogged = n;
+    console.log(`  ${n.toLocaleString()} rows…`);
+  }
 };
 
 async function* rankRows(lines: AsyncIterable<string>) {
@@ -127,6 +146,13 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error(e instanceof Error ? e.message : e);
+  const message = e instanceof Error ? e.message : String(e);
+  const code = (e as { code?: string } | null)?.code;
+  console.error(`Import failed: ${message}${code && !message.includes(code) ? ` (${code})` : ""}`);
+  if (isTransientDbError(e)) {
+    console.error(
+      "The database connection kept dropping. Check your internet connection and that the Neon project is not suspended or over its storage limit, then run the same command again.",
+    );
+  }
   process.exit(1);
 });

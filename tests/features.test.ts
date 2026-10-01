@@ -81,7 +81,7 @@ describe("exports and embeds", () => {
   it("renders a PNG card and a PDF report with a backlink", async () => {
     const report = (await getReport("127.0.0.2:8080"))!;
     const card = buildCardData(report);
-    expect(card.reportUrl).toBe("https://sitelens.test/site/127.0.0.2%3A8080");
+    expect(card.reportUrl).toBe("https://sitelens.test/en/site/127.0.0.2%3A8080");
     const png = new Uint8Array(await (await renderCardImage(card)).arrayBuffer());
     expect([...png.slice(1, 4)].map((c) => String.fromCharCode(c)).join("")).toBe("PNG");
     const small = new Uint8Array(await (await renderCardImage(card, { width: 600, height: 315 })).arrayBuffer());
@@ -89,7 +89,7 @@ describe("exports and embeds", () => {
     const pdf = await renderPdf(report, card, png.buffer as ArrayBuffer);
     const head = new TextDecoder().decode(pdf.slice(0, 5));
     expect(head).toBe("%PDF-");
-    expect(Buffer.from(pdf).toString("latin1")).toContain("/URI (https://sitelens.test/site/127.0.0.2%3A8080)");
+    expect(Buffer.from(pdf).toString("latin1")).toContain("/URI (https://sitelens.test/en/site/127.0.0.2%3A8080)");
   }, 60_000);
 
   it("badge SVG escapes text and snippets always link back", async () => {
@@ -98,7 +98,7 @@ describe("exports and embeds", () => {
     expect(svg).not.toContain("a<b");
     const card = buildCardData((await getReport("127.0.0.2:8080"))!);
     for (const s of [badgeSnippet("https://sitelens.test", card), imageCardSnippet("https://sitelens.test", card), htmlCardSnippet(card)]) {
-      expect(s).toContain('href="https://sitelens.test/site/127.0.0.2%3A8080"');
+      expect(s).toContain('href="https://sitelens.test/en/site/127.0.0.2%3A8080"');
       expect(s).not.toMatch(/<script/i);
     }
   });

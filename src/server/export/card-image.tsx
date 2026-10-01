@@ -87,7 +87,7 @@ export async function renderCardImage(d: CardData, { width = 1200, height = 630 
         <div style={{ display: "flex", marginTop: "auto", justifyContent: "space-between", alignItems: "center", fontSize: 20, color: C.muted, borderTop: `1px solid ${C.line}`, paddingTop: 18 }}>
           <span>Estimates, not the site&apos;s own analytics</span>
           <span style={{ color: C.brand, fontWeight: 600 }}>
-            {host}/site/{clip(d.domain, 30)}
+            {host}/en/site/{clip(d.domain, 26)}
           </span>
         </div>
       </div>

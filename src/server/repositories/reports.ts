@@ -1,8 +1,25 @@
 import { and, desc, eq, gte, isNotNull, or, sql } from "drizzle-orm";
+import { cacheCatalog, cacheReport, catalogTags } from "../cache/isr";
 import { getDb, schema } from "../db/client";
 import type { CachedReport, Report, TechChange } from "@/lib/types";
 
+class ReportMiss extends Error {}
+
 export async function findReport(domain: string): Promise<CachedReport | null> {
+  try {
+    return await cacheReport(domain, "find-report", async () => {
+      const row = await queryReport(domain);
+      // A miss must stay uncached so the scan that follows can be read immediately.
+      if (!row) throw new ReportMiss();
+      return row;
+    });
+  } catch (err) {
+    if (err instanceof ReportMiss) return null;
+    throw err;
+  }
+}
+
+async function queryReport(domain: string): Promise<CachedReport | null> {
   const db = await getDb();
   const [row] = await db.select().from(schema.reports).where(eq(schema.reports.domain, domain)).limit(1);
   if (!row) return null;
@@ -37,7 +54,11 @@ export async function saveReport(report: Report) {
   });
 }
 
-export async function getTechHistory(domain: string): Promise<TechChange[]> {
+export function getTechHistory(domain: string): Promise<TechChange[]> {
+  return cacheReport(domain, "tech-history", () => queryTechHistory(domain));
+}
+
+async function queryTechHistory(domain: string): Promise<TechChange[]> {
   const db = await getDb();
   return db
     .select({ tech: schema.techHistory.tech, firstSeen: schema.techHistory.firstSeen, lastSeen: schema.techHistory.lastSeen })
@@ -85,13 +106,21 @@ function toCard(row: { domain: string; json: string; scannedAt: number }): SiteC
 
 const cardCols = { domain: schema.reports.domain, json: schema.reports.json, scannedAt: schema.reports.scannedAt };
 
-export async function recentSiteCards(limit = 8): Promise<SiteCard[]> {
+export function recentSiteCards(limit = 8): Promise<SiteCard[]> {
+  return cacheCatalog(["recent-cards", String(limit)], catalogTags.directory, () => queryRecentSiteCards(limit));
+}
+
+async function queryRecentSiteCards(limit: number): Promise<SiteCard[]> {
   const db = await getDb();
   const rows = await db.select(cardCols).from(schema.reports).where(eq(schema.reports.fetchOk, true)).orderBy(desc(schema.reports.scannedAt)).limit(limit);
   return rows.map(toCard);
 }
 
-export async function popularSiteCards(limit = 8): Promise<SiteCard[]> {
+export function popularSiteCards(limit = 8): Promise<SiteCard[]> {
+  return cacheCatalog(["popular-cards", String(limit)], catalogTags.directory, () => queryPopularSiteCards(limit));
+}
+
+async function queryPopularSiteCards(limit: number): Promise<SiteCard[]> {
   const db = await getDb();
   const rows = await db
     .select(cardCols)
@@ -109,7 +138,11 @@ const currentUse = and(
   eq(schema.techHistory.lastSeen, schema.reports.scannedAt),
 );
 
-export async function sitesUsingTech(tech: string, limit = 24): Promise<{ total: number; sites: SiteCard[] }> {
+export function sitesUsingTech(tech: string, limit = 24): Promise<{ total: number; sites: SiteCard[] }> {
+  return cacheCatalog(["sites-using", tech, String(limit)], catalogTags.techUsage, () => querySitesUsingTech(tech, limit));
+}
+
+async function querySitesUsingTech(tech: string, limit: number): Promise<{ total: number; sites: SiteCard[] }> {
   const db = await getDb();
   const [{ total }] = await db
     .select({ total: sql<number>`count(*)` })
@@ -128,22 +161,43 @@ export async function sitesUsingTech(tech: string, limit = 24): Promise<{ total:
 
 /** Number of scanned sites currently using each technology. */
 export async function techUsageCounts(): Promise<Map<string, number>> {
+  const rows = await cacheCatalog(["tech-usage"], catalogTags.techUsage, queryTechUsageCounts);
+  return new Map(rows);
+}
+
+async function queryTechUsageCounts(): Promise<[string, number][]> {
   const db = await getDb();
   const rows = await db
     .select({ tech: schema.techHistory.tech, n: sql<number>`count(*)` })
     .from(schema.techHistory)
     .innerJoin(schema.reports, currentUse)
     .groupBy(schema.techHistory.tech);
-  return new Map(rows.map((r) => [r.tech, Number(r.n)]));
+  return rows.map((r) => [r.tech, Number(r.n)]);
 }
 
 /** Reports rich enough to be worth indexing (avoids thin programmatic pages). */
-export async function indexableReports(limit = 50_000, offset = 0) {
+const indexableWhere = and(eq(schema.reports.fetchOk, true), or(eq(schema.reports.hasTraffic, true), gte(schema.reports.techCount, 5)));
+
+export function countIndexableReports() {
+  return cacheCatalog(["indexable-count"], catalogTags.sitemap, queryIndexableCount);
+}
+
+async function queryIndexableCount() {
+  const db = await getDb();
+  const [row] = await db.select({ n: sql<number>`count(*)` }).from(schema.reports).where(indexableWhere);
+  return Number(row?.n ?? 0);
+}
+
+export function indexableReports(limit = 50_000, offset = 0) {
+  return cacheCatalog(["indexable", String(limit), String(offset)], catalogTags.sitemap, () => queryIndexableReports(limit, offset));
+}
+
+async function queryIndexableReports(limit: number, offset: number) {
   const db = await getDb();
   return db
     .select({ domain: schema.reports.domain, scannedAt: schema.reports.scannedAt })
     .from(schema.reports)
-    .where(and(eq(schema.reports.fetchOk, true), or(eq(schema.reports.hasTraffic, true), gte(schema.reports.techCount, 5))))
+    .where(indexableWhere)
     .orderBy(desc(schema.reports.scannedAt))
     .limit(limit)
     .offset(offset);

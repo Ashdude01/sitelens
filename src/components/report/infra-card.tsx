@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Server } from "lucide-react";
 import type { Report } from "@/lib/types";
 import { isoDate, yearsSince } from "@/lib/format";
@@ -18,25 +19,26 @@ const lines = (xs: string[], n: number) =>
     <Dash />
   );
 
-export function InfraCard({ report: r, className }: { report: Report; className?: string }) {
+export async function InfraCard({ report: r, className }: { report: Report; className?: string }) {
+  const t = await getTranslations("infra");
   const h = r.hosting;
   const c = r.cert;
   const reg = r.registration;
   const rows: [React.ReactNode, React.ReactNode][] = [
     ["IP address", h.ip ? <span className="font-mono text-xs">{h.ip}{h.ipv6 && <span className="text-muted-foreground"> · IPv6</span>}</span> : <Dash />],
-    ["Hosting network", h.asn ? `${h.asn.org ?? "Unknown"} (AS${h.asn.asn}${h.asn.country ? `, ${h.asn.country}` : ""})` : <Dash />],
-    ["Nameservers", lines(h.nameservers, 4)],
-    ["Mail servers", lines(h.mx, 3)],
-    ["SPF", h.spf ? "Configured" : <Dash />],
-    ["DMARC", h.dmarc ? (h.dmarc.match(/p=\w+/)?.[0] ?? "Configured") : <Dash />],
+    [t("network"), h.asn ? `${h.asn.org ?? t("unknown")} (AS${h.asn.asn}${h.asn.country ? `, ${h.asn.country}` : ""})` : <Dash />],
+    [t("ns"), lines(h.nameservers, 4)],
+    [t("mx"), lines(h.mx, 3)],
+    [t("spf"), h.spf ? t("configured") : <Dash />],
+    [t("dmarc"), h.dmarc ? (h.dmarc.match(/p=\w+/)?.[0] ?? t("configured")) : <Dash />],
     [
-      "SSL issuer",
+      t("issuer"),
       c ? (
         <span>
           {c.issuerOrg ?? c.issuerCN ?? "—"}{" "}
           {!c.trusted && (
             <Badge variant="destructive" className="ml-1">
-              not trusted
+              {t("untrusted")}
             </Badge>
           )}
         </span>
@@ -44,17 +46,18 @@ export function InfraCard({ report: r, className }: { report: Report; className?
         <Dash />
       ),
     ],
-    ["SSL expires", c?.validTo ? isoDate(c.validTo) : <Dash />],
-    ["TLS", c?.protocol ?? <Dash />],
-    ["Domain registered", reg?.registered ? `${isoDate(reg.registered)} (${yearsSince(reg.registered)} yrs)` : <Dash />],
-    ["Registrar", reg?.registrar ?? <Dash />],
+    [t("expires"), c?.validTo ? isoDate(c.validTo) : <Dash />],
+    [t("tls"), c?.protocol ?? <Dash />],
+    [t("registered"), reg?.registered ? t("years", { date: isoDate(reg.registered), n: yearsSince(reg.registered) ?? "" }) : <Dash />],
+    [t("registrar"), reg?.registrar ?? <Dash />],
   ];
-  if (h.verificationTxt.length) rows.push(["Verified with", h.verificationTxt.join(", ")]);
+  if (h.verificationTxt.length) rows.push([t("verified"), h.verificationTxt.join(", ")]);
+  rows[0][0] = t("ip");
   return (
     <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Server className="text-muted-foreground size-4" /> Hosting, DNS &amp; SSL
+          <Server className="text-muted-foreground size-4" /> {t("title")}
         </CardTitle>
       </CardHeader>
       <CardContent>

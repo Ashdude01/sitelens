@@ -30,7 +30,7 @@ export function buildCardData(r: CachedReport): CardData {
     domain: r.domain,
     title: r.site?.title ?? null,
     siteType: e.siteType.label,
-    reportUrl: `${config.publicUrl}/site/${encodeURIComponent(r.domain)}`,
+    reportUrl: `${config.publicUrl}/en/site/${encodeURIComponent(r.domain)}`,
     siteName: config.siteName,
     visits: e.visits
       ? { value: e.verified ? compact(e.visits.monthly.mid) : approx(e.visits.monthly), range: e.verified ? null : span(e.visits.monthly), verified: e.verified }
